@@ -3,3 +3,4 @@ dist
 node_modules
 .vercel
 .DS_Store
+.git-codex-store
