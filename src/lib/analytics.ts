@@ -249,8 +249,6 @@ function computeCorrelations(employeeDays: EmployeeDay[]): CorrelationCell[] {
     工时: employeeDays.map((day) => day.reportHour),
     任务数: employeeDays.map((day) => day.taskCount),
     项目数: employeeDays.map((day) => day.projectCount),
-    核验缺口: employeeDays.map((day) => Math.max(day.reportHour - day.verifyHour, 0)),
-    异常分数: employeeDays.map((day) => day.anomalyScore),
   };
 
   const labels = Object.keys(features) as Array<keyof typeof features>;
@@ -380,7 +378,7 @@ function buildReportBlocks(
       body: `建议优先接入 Git/PR 与项目反馈，再结合默认脱敏的 AI 使用日志，验证投入、交付和用户结果之间的相关性。当前数据范围不足以支持因果判断。`,
     },
     {
-      title: 'AI 智能体判断',
+      title: '智能分析摘要',
       body: agentReport.summary,
     },
   ];
@@ -659,24 +657,6 @@ export function buildAnalyticsView(dataset: BaseDataset, filters: Filters): Anal
   });
 
   let employeeDays = aggregateEmployeeDays(filteredTasksBySelectors, dataset);
-
-  if (filters.onlyMultiProject) {
-    const allowedKeys = new Set(
-      employeeDays
-        .filter((day) => day.projectCount > 1)
-        .map((day) => `${day.employeeId}:${day.date}`),
-    );
-    employeeDays = employeeDays.filter((day) => allowedKeys.has(`${day.employeeId}:${day.date}`));
-  }
-
-  if (filters.onlyAnomalous) {
-    const allowedKeys = new Set(
-      employeeDays
-        .filter((day) => day.isAnomalous)
-        .map((day) => `${day.employeeId}:${day.date}`),
-    );
-    employeeDays = employeeDays.filter((day) => allowedKeys.has(`${day.employeeId}:${day.date}`));
-  }
 
   const allowedDayKeys = new Set(
     employeeDays.map((day) => `${day.employeeId}:${day.date}`),

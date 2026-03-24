@@ -10,6 +10,7 @@ import { OverviewPage } from './pages/OverviewPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { QualityPage } from './pages/QualityPage';
 import { ReportPage } from './pages/ReportPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { TasksPage } from './pages/TasksPage';
 import { MethodsPage } from './pages/MethodsPage';
 import { useAppStore } from './store/appStore';
@@ -38,12 +39,31 @@ export default function App() {
         return <AgentPage view={view} onNavigate={setActivePage} />;
       case 'methods':
         return <MethodsPage view={view} />;
+      case 'settings':
+        return (
+          <SettingsPage
+            dataset={dataset}
+            filters={filters}
+            onPatchFilters={patchFilters}
+            onUpload={(event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                if (typeof reader.result === 'string') {
+                  replaceSource(reader.result);
+                }
+              };
+              reader.readAsText(file, 'utf-8');
+            }}
+          />
+        );
       case 'employees':
         return <EmployeesPage view={view} onOpenDetail={openDetail} />;
       case 'projects':
-        return <ProjectsPage view={view} onOpenDetail={openDetail} />;
+        return <ProjectsPage view={view} filters={filters} onOpenDetail={openDetail} />;
       case 'tasks':
-        return <TasksPage view={view} />;
+        return <TasksPage view={view} onOpenDetail={openDetail} />;
       case 'quality':
         return <QualityPage view={view} onOpenDetail={openDetail} />;
       case 'correlation':
@@ -56,6 +76,7 @@ export default function App() {
           <OverviewPage
             dataset={dataset}
             view={view}
+            filters={filters}
             onOpenDetail={openDetail}
           />
         );
@@ -74,17 +95,6 @@ export default function App() {
           onPatchFilters={patchFilters}
           onReset={resetFilters}
           onToggleImmersive={setImmersiveMode}
-          onUpload={(event) => {
-            const file = event.target.files?.[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = () => {
-              if (typeof reader.result === 'string') {
-                replaceSource(reader.result);
-              }
-            };
-            reader.readAsText(file, 'utf-8');
-          }}
         />
         <motion.div
           key={activePage}
@@ -99,6 +109,7 @@ export default function App() {
       <DetailDrawer
         detail={detailSelection}
         view={view}
+        filters={filters}
         onClose={closeDetail}
       />
     </div>

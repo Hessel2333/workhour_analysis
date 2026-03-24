@@ -2,7 +2,7 @@ import type { PageKey } from '../types';
 
 const ITEMS: Array<{ key: PageKey; label: string; hint: string }> = [
   { key: 'overview', label: '总览', hint: '投入与趋势' },
-  { key: 'agent', label: 'AI 智能体', hint: '异常报告与建议' },
+  { key: 'agent', label: '智能分析', hint: '规则诊断与 Gemini' },
   { key: 'employees', label: '员工视图', hint: '工时热图与碎片化' },
   { key: 'projects', label: '项目视图', hint: '投入构成与波动' },
   { key: 'tasks', label: '任务洞察', hint: '主题、关键词与明细' },
@@ -38,6 +38,14 @@ export function Sidebar({ activePage, onChange }: SidebarProps) {
         ))}
       </nav>
       <div className="sidebar-secondary">
+        <button
+          className={`nav-item nav-item-secondary ${activePage === 'settings' ? 'active' : ''}`.trim()}
+          onClick={() => onChange('settings')}
+          type="button"
+        >
+          <span>设置</span>
+          <small>文件与工时制</small>
+        </button>
         <button
           className={`nav-item nav-item-secondary ${activePage === 'methods' ? 'active' : ''}`.trim()}
           onClick={() => onChange('methods')}

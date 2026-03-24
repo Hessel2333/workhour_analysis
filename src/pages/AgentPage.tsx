@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { ChartPanel } from '../components/ChartPanel';
+import { CollapsiblePanel } from '../components/CollapsiblePanel';
 import { MetricCard } from '../components/MetricCard';
 import { MetaPill } from '../components/MetaPill';
 import { Panel } from '../components/Panel';
@@ -27,6 +29,27 @@ export function AgentPage({ view, onNavigate }: AgentPageProps) {
     },
     { high: 0, medium: 0, low: 0 },
   );
+  const scopeSummary = view.agentReport.issues.reduce(
+    (summary, issue) => {
+      summary[issue.scope] += 1;
+      return summary;
+    },
+    { employee: 0, project: 0, dataset: 0 },
+  );
+  const recommendationSummary = view.agentReport.recommendations.reduce(
+    (summary, item) => {
+      summary[item.priority] += 1;
+      return summary;
+    },
+    { P1: 0, P2: 0, P3: 0 },
+  );
+
+  const topIssue = view.agentReport.issues[0];
+  const dominantScope = useMemo(() => {
+    return (
+      Object.entries(scopeSummary).sort((left, right) => right[1] - left[1])[0]?.[0] ?? 'dataset'
+    );
+  }, [scopeSummary]);
 
   const copyPrompt = async () => {
     try {
@@ -90,118 +113,195 @@ export function AgentPage({ view, onNavigate }: AgentPageProps) {
     }
   };
 
+  const severityOption = {
+    tooltip: { trigger: 'item' },
+    series: [
+      {
+        type: 'pie',
+        radius: ['56%', '76%'],
+        label: { formatter: '{b}\n{d}%', color: '#0f172a', fontWeight: 600 },
+        data: [
+          { name: '高风险', value: issueSummary.high, itemStyle: { color: '#ef4444' } },
+          { name: '中风险', value: issueSummary.medium, itemStyle: { color: '#f59e0b' } },
+          { name: '低风险', value: issueSummary.low, itemStyle: { color: '#94a3b8' } },
+        ],
+      },
+    ],
+  };
+
+  const scopeOption = {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: 24, right: 20, top: 24, bottom: 24, containLabel: true },
+    xAxis: { type: 'value' },
+    yAxis: {
+      type: 'category',
+      data: ['员工侧', '项目侧', '数据侧'],
+    },
+    series: [
+      {
+        type: 'bar',
+        data: [scopeSummary.employee, scopeSummary.project, scopeSummary.dataset],
+        itemStyle: { color: '#2563eb', borderRadius: 10 },
+      },
+    ],
+  };
+
+  const recommendationOption = {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: 24, right: 20, top: 24, bottom: 24, containLabel: true },
+    xAxis: { type: 'category', data: ['P1', 'P2', 'P3'] },
+    yAxis: { type: 'value' },
+    series: [
+      {
+        type: 'bar',
+        data: [
+          recommendationSummary.P1,
+          recommendationSummary.P2,
+          recommendationSummary.P3,
+        ],
+        itemStyle: {
+          color: (params: { dataIndex: number }) =>
+            ['#ef4444', '#f59e0b', '#94a3b8'][params.dataIndex] ?? '#94a3b8',
+          borderRadius: 10,
+        },
+      },
+    ],
+  };
+
   return (
     <div className="page-grid">
       <div className="metrics-grid">
         <MetricCard
-          label="识别问题"
+          label="规则诊断"
           value={`${view.agentReport.issues.length}`}
-          hint="当前筛选口径下的异常和风险项"
+          hint="当前筛选口径下的风险项"
+          tone="derived"
         />
         <MetricCard
-          label="高优先级"
+          label="高风险"
           value={`${issueSummary.high}`}
-          hint="建议优先复盘和调整排班"
+          hint={topIssue ? `当前最严重：${topIssue.subjectReal}` : '当前没有高风险项'}
+          tone={issueSummary.high > 0 ? 'warning' : 'healthy'}
         />
         <MetricCard
-          label="本地模式"
-          value="Rules"
-          hint="当前智能体为本地规则推理，不依赖外部模型"
+          label="风险集中"
+          value={dominantScope === 'employee' ? '员工侧' : dominantScope === 'project' ? '项目侧' : '数据侧'}
+          hint="这决定了先看员工页、项目页还是质量页"
+          tone="real"
         />
         <MetricCard
-          label="Gemini 配置"
-          value={geminiConfigured ? '已连接' : '未配置'}
+          label="Gemini"
+          value={geminiConfigured ? '已连接' : '未连接'}
           hint={geminiModel}
-        />
-        <MetricCard
-          label="生成时间"
-          value={new Date(view.agentReport.generatedAt).toLocaleTimeString('zh-CN', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-          hint="每次筛选变化后自动刷新分析"
+          tone={geminiConfigured ? 'model' : 'mock'}
         />
       </div>
 
       <Panel
-        title="智能体摘要"
-        subtitle="自动诊断当前工时结构中的异常与风险"
-        note="这不是绩效评分，而是基于工时、碎片化、项目切换、主题复杂度和 mock 协同数据生成的管理诊断。"
-        className="panel-wide"
+        title="智能分析"
+        subtitle="先看规则诊断，再决定是否调用 Gemini 深化解释"
+        className="panel-wide panel-strip"
         meta={
-          <div className="chart-meta">
-            <MetaPill tone="derived">规则推导</MetaPill>
-            <span>方法：阈值规则 + 质量信号 + mock 协同数据</span>
-            <span>可靠性：{view.dataHealth.sampleDays < 14 ? '中低' : '中'}</span>
-            <span>注意：建议先结合质量页验证再下结论</span>
+          <div className="summary-ribbon">
+            <strong>{view.agentReport.summary}</strong>
+            <span>规则诊断先输出可复核线索</span>
+            <span>Gemini 负责补充自然语言解释</span>
+            <span>不要把本页结果直接当绩效结论</span>
           </div>
         }
       >
-        <div className="agent-summary">
-          <p>{view.agentReport.summary}</p>
-          <div className="agent-tags">
-            <span>高风险 {issueSummary.high}</span>
-            <span>中风险 {issueSummary.medium}</span>
-            <span>低风险 {issueSummary.low}</span>
-          </div>
+        <div className="agent-topline">
+          <MetaPill tone="derived">规则诊断</MetaPill>
+          <MetaPill tone={geminiConfigured ? 'model' : 'mock'}>
+            {geminiConfigured ? 'Gemini 已就绪' : 'Gemini 未连接'}
+          </MetaPill>
+          <MetaPill tone={view.dataHealth.status === 'healthy' ? 'healthy' : 'warning'}>
+            {view.dataHealth.status === 'healthy' ? '可读性较高' : '需结合数据限制阅读'}
+          </MetaPill>
         </div>
       </Panel>
 
+      <ChartPanel
+        title="风险等级分布"
+        subtitle="高、中、低风险各有多少项"
+        note={issueSummary.high > 0 ? '当前仍有高风险项，优先复盘这些对象。' : '当前没有高风险项，更多是结构性提醒。'}
+        option={severityOption}
+        source="derived"
+        method="按规则诊断结果聚合严重程度"
+        reliability="中"
+        caution="这是复盘优先级，不是结果评价"
+      />
+
+      <ChartPanel
+        title="风险落点"
+        subtitle="问题更集中在员工、项目还是数据"
+        note={`当前风险更集中在${dominantScope === 'employee' ? '员工侧' : dominantScope === 'project' ? '项目侧' : '数据侧'}。`}
+        option={scopeOption}
+        source="derived"
+        method="按问题作用域聚合"
+        reliability="中"
+        caution="建议据此决定先去哪个页面下钻"
+      />
+
+      <ChartPanel
+        title="动作优先级"
+        subtitle="先做 P1，再做 P2 / P3"
+        note={recommendationSummary.P1 > 0 ? `当前有 ${recommendationSummary.P1} 条 P1 动作建议优先处理。` : '当前没有必须立刻执行的 P1 动作。'}
+        option={recommendationOption}
+        source="derived"
+        method="按建议优先级聚合"
+        reliability="中"
+        caution="建议先改排班、切换和返工，再补工具或数据"
+      />
+
       <Panel
-        title="异常报告"
-        subtitle="智能体判定的重点异常"
-        note="每条异常都包含证据和对应动作，便于项目经理直接拿去复盘。"
+        title="重点异常"
+        subtitle="把最值得看的问题收成紧凑卡片"
         className="panel-wide"
       >
-        <div className="agent-issues">
+        <div className="analysis-card-grid">
           {view.agentReport.issues.length ? (
-            view.agentReport.issues.map((issue) => (
-              <article key={issue.id} className={`agent-issue severity-${issue.severity}`}>
-                <div className="agent-issue-header">
+            view.agentReport.issues.slice(0, 6).map((issue) => (
+              <article key={issue.id} className={`analysis-card severity-${issue.severity}`}>
+                <div className="analysis-card-header">
                   <div>
-                    <p className="panel-kicker">{issue.title}</p>
-                    <h4>{issue.subjectReal}</h4>
+                    <strong>{issue.subjectReal}</strong>
+                    <p>{issue.title}</p>
                   </div>
-                  <div className="agent-issue-actions">
-                    <span className="issue-badge">
-                      {severityLabel(issue.severity)} / {issue.scope}
+                  <span className="issue-badge">
+                    {severityLabel(issue.severity)} / {issue.scope === 'employee' ? '员工侧' : issue.scope === 'project' ? '项目侧' : '数据侧'}
+                  </span>
+                </div>
+                <p className="analysis-card-summary">{issue.summary}</p>
+                <div className="analysis-chip-row">
+                  {issue.evidence.slice(0, 2).map((item) => (
+                    <span key={item} className="analysis-chip">
+                      {item}
                     </span>
-                    <button
-                      className="ghost-button"
-                      type="button"
-                      onClick={() =>
-                        onNavigate(
-                          issue.scope === 'employee'
-                            ? 'employees'
-                            : issue.scope === 'project'
-                              ? 'projects'
-                              : 'quality',
-                        )
-                      }
-                    >
-                      查看证据页
-                    </button>
-                  </div>
+                  ))}
                 </div>
-                <p className="agent-issue-summary">{issue.summary}</p>
-                <div className="agent-columns">
-                  <div>
-                    <strong>证据</strong>
-                    <ul className="report-list">
-                      {issue.evidence.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <strong>建议动作</strong>
-                    <ul className="report-list">
-                      {issue.recommendations.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
+                <div className="analysis-card-actions">
+                  {issue.recommendations.slice(0, 2).map((item) => (
+                    <span key={item} className="analysis-chip analysis-chip-strong">
+                      {item}
+                    </span>
+                  ))}
                 </div>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() =>
+                    onNavigate(
+                      issue.scope === 'employee'
+                        ? 'employees'
+                        : issue.scope === 'project'
+                          ? 'projects'
+                          : 'quality',
+                    )
+                  }
+                >
+                  去对应页面
+                </button>
               </article>
             ))
           ) : (
@@ -210,75 +310,88 @@ export function AgentPage({ view, onNavigate }: AgentPageProps) {
         </div>
       </Panel>
 
-      <Panel
-        title="优化建议"
-        subtitle="智能体给出的优先级动作"
-        note="建议按 P1 到 P3 排序执行，先动组织与排班，再补数据和工具。"
-      >
-        <div className="agent-recommendations">
+      <Panel title="动作建议" subtitle="不看长文，直接看要做什么">
+        <div className="analysis-list">
           {view.agentReport.recommendations.map((recommendation) => (
-            <div className="agent-recommendation" key={recommendation.title}>
-              <div className="agent-recommendation-header">
-                <strong>{recommendation.title}</strong>
-                <span className="priority-badge">{recommendation.priority}</span>
+            <div key={recommendation.title} className="analysis-list-row">
+              <div>
+                <div className="analysis-list-title">
+                  <strong>{recommendation.title}</strong>
+                  <span className="priority-badge">{recommendation.priority}</span>
+                </div>
+                <p>{recommendation.rationale}</p>
               </div>
-              <p>{recommendation.rationale}</p>
-              <ul className="report-list">
-                {recommendation.actions.map((action) => (
-                  <li key={action}>{action}</li>
+              <div className="analysis-chip-row">
+                {recommendation.actions.slice(0, 3).map((action) => (
+                  <span key={action} className="analysis-chip">
+                    {action}
+                  </span>
                 ))}
-              </ul>
+              </div>
             </div>
           ))}
         </div>
       </Panel>
 
       <Panel
-        title="模型接口"
-        subtitle="Gemini 本地代理调用与结构化提示词"
-        note="Gemini 使用项目根目录 .env 中的 GEMINI_API_KEY 和 GEMINI_MODEL。前端不会直接暴露 key。"
-        badge={geminiConfigured ? 'Gemini 已配置' : '待配置 .env'}
-      >
-        <div className="prompt-box">
-          <pre>{view.agentReport.llmPrompt}</pre>
-        </div>
-        <div className="prompt-actions">
-          <button className="primary-button" onClick={copyPrompt} type="button">
-            {copyState === 'done'
-              ? '已复制'
-              : copyState === 'error'
-                ? '复制失败'
-              : '复制 Prompt'}
-          </button>
-          <button
-            className="primary-button"
-            onClick={runGeminiAnalysis}
-            type="button"
-            disabled={geminiStatus === 'loading'}
-          >
-            {geminiStatus === 'loading' ? 'Gemini 分析中...' : '运行 Gemini 分析'}
-          </button>
-          <span>默认只包含脱敏和结构化信息，不包含 AI 原文对话。</span>
-        </div>
-        {geminiError ? <p className="error-text">{geminiError}</p> : null}
-      </Panel>
-
-      <Panel
-        title="Gemini 输出"
-        subtitle="真实大模型返回的异常分析与优化建议"
-        note="如果尚未配置 .env 或本地代理未启动，这里会保持为空。"
+        title="Gemini 分析"
+        subtitle="真实大模型解释单独放在这里"
         className="panel-wide"
-      >
-        {geminiResult ? (
-          <div className="prompt-box">
-            <pre>{geminiResult}</pre>
+        meta={
+          <div className="chart-meta">
+            <MetaPill tone={geminiConfigured ? 'model' : 'mock'}>
+              {geminiConfigured ? '已连接' : '待配置'}
+            </MetaPill>
+            <span>前面的内容来自规则诊断</span>
+            <span>这里才是 Gemini 的自然语言分析</span>
           </div>
-        ) : (
-          <p className="report-text">
-            还没有 Gemini 输出。先在项目根目录创建 `.env`，填入 `GEMINI_API_KEY` 和
-            `GEMINI_MODEL`，再点击“运行 Gemini 分析”。
-          </p>
-        )}
+        }
+      >
+        <div className="gemini-grid">
+          <div className="gemini-control">
+            <div className="callout">
+              <strong>{geminiConfigured ? 'Gemini 已可调用' : 'Gemini 尚未就绪'}</strong>
+              <span>调用时只会发送脱敏后的结构化信息，不会发送原始对话文本。</span>
+            </div>
+            <div className="prompt-actions">
+              <button className="primary-button" onClick={runGeminiAnalysis} type="button" disabled={geminiStatus === 'loading'}>
+                {geminiStatus === 'loading' ? 'Gemini 分析中...' : '运行 Gemini 分析'}
+              </button>
+              <button className="ghost-button" onClick={copyPrompt} type="button">
+                {copyState === 'done'
+                  ? '已复制'
+                  : copyState === 'error'
+                    ? '复制失败'
+                    : '复制 Prompt'}
+              </button>
+            </div>
+            {geminiError ? <p className="error-text">{geminiError}</p> : null}
+            <CollapsiblePanel
+              title="结构化 Prompt"
+              subtitle="按需展开查看"
+              note="只保留结构化指标和摘要，不包含原始聊天文本。"
+              defaultOpen={false}
+              className="panel-strip"
+            >
+              <div className="prompt-box prompt-box-light">
+                <pre>{view.agentReport.llmPrompt}</pre>
+              </div>
+            </CollapsiblePanel>
+          </div>
+
+          <div className="gemini-output">
+            {geminiResult ? (
+              <div className="prompt-box">
+                <pre>{geminiResult}</pre>
+              </div>
+            ) : (
+              <div className="gemini-empty">
+                <strong>还没有 Gemini 输出</strong>
+                <p>前面的内容已经可以作为规则诊断使用；如果你需要更自然的异常综述和管理建议，再运行 Gemini。</p>
+              </div>
+            )}
+          </div>
+        </div>
       </Panel>
     </div>
   );

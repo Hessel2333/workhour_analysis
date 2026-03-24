@@ -28,13 +28,13 @@ interface AppState {
 
 function createDefaultFilters(dataset: BaseDataset): Filters {
   return {
+    periodMode: 'year',
+    overtimeMode: 'bigSmallWeek',
     startDate: dataset.dateRange.start,
     endDate: dataset.dateRange.end,
     employeeId: '',
     projectName: '',
     topicLabel: '',
-    onlyMultiProject: false,
-    onlyAnomalous: false,
   };
 }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { withChartTheme } from '../lib/chartTheme';
 import { MetaPill } from './MetaPill';
@@ -10,11 +11,13 @@ interface ChartPanelProps {
   note: string;
   option: Record<string, unknown>;
   height?: number;
+  className?: string;
   badge?: string;
   source?: 'real' | 'mock' | 'derived' | 'model';
   method?: string;
   reliability?: string;
   caution?: string;
+  actions?: ReactNode;
   onChartClick?: (params: { name?: string; value?: unknown; data?: unknown }) => void;
 }
 
@@ -24,11 +27,13 @@ export function ChartPanel({
   note,
   option,
   height = 320,
+  className = '',
   badge,
   source = 'real',
   method,
   reliability,
   caution,
+  actions,
   onChartClick,
 }: ChartPanelProps) {
   const [showDetails, setShowDetails] = useState(false);
@@ -41,21 +46,24 @@ export function ChartPanel({
 
   return (
     <Panel
-      className="chart-panel"
+      className={`chart-panel ${className}`.trim()}
       title={title}
       subtitle={subtitle}
       note={showDetails ? note : undefined}
       badge={badge}
       actions={
-        method || reliability || caution || note ? (
-          <button
-            type="button"
-            className={`panel-info-toggle ${showDetails ? 'active' : ''}`.trim()}
-            onClick={() => setShowDetails((current) => !current)}
-          >
-            {showDetails ? '收起' : '说明'}
-          </button>
-        ) : undefined
+        <>
+          {actions}
+          {method || reliability || caution || note ? (
+            <button
+              type="button"
+              className={`panel-info-toggle ${showDetails ? 'active' : ''}`.trim()}
+              onClick={() => setShowDetails((current) => !current)}
+            >
+              {showDetails ? '收起' : '说明'}
+            </button>
+          ) : null}
+        </>
       }
       meta={
         showDetails ? (

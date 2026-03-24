@@ -2,6 +2,7 @@ export type PageKey =
   | 'overview'
   | 'agent'
   | 'methods'
+  | 'settings'
   | 'employees'
   | 'projects'
   | 'tasks'
@@ -149,13 +150,13 @@ export interface BaseDataset {
 }
 
 export interface Filters {
+  periodMode: 'month' | 'year';
+  overtimeMode: 'standard' | 'bigSmallWeek';
   startDate: string;
   endDate: string;
   employeeId: string;
   projectName: string;
   topicLabel: string;
-  onlyMultiProject: boolean;
-  onlyAnomalous: boolean;
 }
 
 export interface GlobalMetrics {
@@ -281,12 +282,13 @@ export interface AnalyticsView {
 }
 
 export interface DetailSelection {
-  kind: 'employee' | 'project' | 'date' | 'generic';
+  kind: 'employee' | 'project' | 'date' | 'task' | 'generic';
   title: string;
   subtitle: string;
   employeeId?: string;
   projectName?: string;
   date?: string;
+  taskId?: string;
   highlightDate?: string;
   rows: Array<Record<string, string | number>>;
 }

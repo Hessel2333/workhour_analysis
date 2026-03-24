@@ -1,4 +1,4 @@
-import rawSource from '../../工时数据.txt?raw';
+import rawSource from '../../data.json?raw';
 import { buildMockConnectors } from './connectors';
 import { classifyTaskTopic } from './topicRules';
 import type {
@@ -6,6 +6,7 @@ import type {
   Employee,
   EmployeeDay,
   QualityFlag,
+  RawEmployee,
   RawWorkhourResponse,
   Task,
   TaskTopic,
@@ -19,15 +20,31 @@ function sortDates(dateA: string, dateB: string) {
   return new Date(dateA).getTime() - new Date(dateB).getTime();
 }
 
+function normalizeRawEmployees(source: string): RawEmployee[] {
+  const parsed = JSON.parse(source) as RawWorkhourResponse | RawEmployee[];
+
+  if (Array.isArray(parsed)) {
+    return parsed;
+  }
+
+  if (parsed && Array.isArray(parsed.result)) {
+    return parsed.result;
+  }
+
+  throw new Error('工时文件格式不符合预期，缺少 result 列表。');
+}
+
 export function parseWorkhourSource(source: string): BaseDataset {
-  const parsed = JSON.parse(source) as RawWorkhourResponse;
+  const parsedEmployees = normalizeRawEmployees(source);
   const employees: Employee[] = [];
   const employeeDays: EmployeeDay[] = [];
   const tasks: Task[] = [];
   const taskTopics: TaskTopic[] = [];
   const qualityFlags: QualityFlag[] = [];
+  let excludedImpossibleDayCount = 0;
+  let excludedImpossibleTaskCount = 0;
 
-  parsed.result.forEach((employee, employeeIndex) => {
+  parsedEmployees.forEach((employee, employeeIndex) => {
     const normalizedEmployee: Employee = {
       employeeId: employee.Id,
       name: employee.Name,
@@ -51,6 +68,22 @@ export function parseWorkhourSource(source: string): BaseDataset {
 
     employee.DetailList.forEach((detail) => {
       const dayTasks = detail.TaskList ?? [];
+      const impossibleTasks = dayTasks.filter((item) => item.ReportHour > 24 || item.ReportHour < 0);
+      const hasImpossibleDayHours = detail.ReportHour > 24 || detail.ReportHour < 0;
+
+      if (hasImpossibleDayHours || impossibleTasks.length) {
+        excludedImpossibleDayCount += 1;
+        excludedImpossibleTaskCount += impossibleTasks.length || dayTasks.length;
+        qualityFlags.push({
+          entityType: 'employeeDay',
+          entityId: `${employee.Id}:${detail.Date}`,
+          flagType: 'impossible_daily_hours',
+          severity: 'high',
+          message: `${employee.Name} 在 ${detail.Date} 的工时记录异常（日工时 ${detail.ReportHour}h，任务最大值 ${Math.max(0, ...dayTasks.map((item) => item.ReportHour))}h），已默认从分析中剔除，请优先修正原始数据。`,
+        });
+        return;
+      }
+
       const projectCount = new Set(dayTasks.map((item) => item.ProjectName)).size;
       const anomalyScore =
         (detail.ReportHour >= 9 ? 1 : 0) +
@@ -128,6 +161,14 @@ export function parseWorkhourSource(source: string): BaseDataset {
             severity: 'low',
             message: `任务“${task.Name}”尚未命中主题词典。`,
           });
+        } else if (topic.topicLabel === '待确认') {
+          qualityFlags.push({
+            entityType: 'task',
+            entityId: task.Id,
+            flagType: 'pending_topic_confirmation',
+            severity: 'low',
+            message: `任务“${task.Name}”命中了待确认规则，建议人工确认最终类别。`,
+          });
         }
       });
     });
@@ -136,6 +177,10 @@ export function parseWorkhourSource(source: string): BaseDataset {
   const allDates = employeeDays.map((item) => item.date).sort(sortDates);
   const uniqueDates = Array.from(new Set(allDates));
   const projectNames = Array.from(new Set(tasks.map((item) => item.projectName)));
+  const verifiedTasks = tasks.filter((item) => item.verifyState === '已核验').length;
+  const verifyCoverageRate = tasks.length ? verifiedTasks / tasks.length : 0;
+  const uncategorizedTaskCount = tasks.filter((item) => item.topicLabel === '未分类').length;
+  const uncategorizedRate = tasks.length ? uncategorizedTaskCount / tasks.length : 0;
   const connectors = buildMockConnectors(
     projectNames,
     employees.map((item) => item.employeeId),
@@ -163,7 +208,11 @@ export function parseWorkhourSource(source: string): BaseDataset {
     notes: [
       `样本覆盖 ${uniqueDates[0]} 到 ${uniqueDates[uniqueDates.length - 1]}。`,
       `共有 ${employees.length} 名员工记录，其中 ${employees.filter((item) => item.hasDetail).length} 名有工时明细。`,
-      `当前核验数据全部缺失，报告中的质量判断以填报数据和任务结构为主。`,
+      `当前共解析 ${tasks.length} 条任务、${projectNames.length} 个项目，核验覆盖率约 ${(verifyCoverageRate * 100).toFixed(1)}%。`,
+      `当前任务分类未命中率约 ${(uncategorizedRate * 100).toFixed(1)}%，复杂语义任务仍建议人工复核。`,
+      excludedImpossibleDayCount
+        ? `已自动剔除 ${excludedImpossibleDayCount} 个不可能工时员工日（涉及约 ${excludedImpossibleTaskCount} 条任务），避免污染统计结果。`
+        : '当前未发现超过 24 小时的明显工时脏数据。',
     ],
     connectors,
   };

@@ -4,13 +4,19 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import { formatNumber } from '../lib/format';
 
 interface DataTableProps<T extends object> {
   data: T[];
   columns: Array<ColumnDef<T>>;
+  onRowClick?: (row: T) => void;
 }
 
-export function DataTable<T extends object>({ data, columns }: DataTableProps<T>) {
+export function DataTable<T extends object>({
+  data,
+  columns,
+  onRowClick,
+}: DataTableProps<T>) {
   const table = useReactTable({
     data,
     columns,
@@ -35,10 +41,28 @@ export function DataTable<T extends object>({ data, columns }: DataTableProps<T>
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
+            <tr
+              key={row.id}
+              className={onRowClick ? 'clickable-row' : undefined}
+              onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+            >
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  {(() => {
+                    const rendered = flexRender(cell.column.columnDef.cell, cell.getContext());
+                    if (typeof rendered === 'number') {
+                      return formatNumber(rendered, 1);
+                    }
+
+                    if (rendered == null) {
+                      const rawValue = cell.getValue();
+                      if (typeof rawValue === 'number') {
+                        return formatNumber(rawValue, 1);
+                      }
+                    }
+
+                    return rendered;
+                  })()}
                 </td>
               ))}
             </tr>

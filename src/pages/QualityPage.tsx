@@ -4,7 +4,7 @@ import { CollapsiblePanel } from '../components/CollapsiblePanel';
 import { DataTable } from '../components/DataTable';
 import { MetaPill } from '../components/MetaPill';
 import { Panel } from '../components/Panel';
-import { severityLabel } from '../lib/format';
+import { qualityEntityTypeLabel, qualityFlagTypeLabel, severityLabel } from '../lib/format';
 import type { AnalyticsView, DetailSelection } from '../types';
 
 interface QualityPageProps {
@@ -52,7 +52,8 @@ export function QualityPage({ view, onOpenDetail }: QualityPageProps) {
 
   const flagCountEntries = Array.from(
     view.qualityFlags.reduce((map, flag) => {
-      map.set(flag.flagType, (map.get(flag.flagType) ?? 0) + 1);
+      const label = qualityFlagTypeLabel(flag.flagType);
+      map.set(label, (map.get(label) ?? 0) + 1);
       return map;
     }, new Map<string, number>()),
   );
@@ -72,12 +73,18 @@ export function QualityPage({ view, onOpenDetail }: QualityPageProps) {
   };
 
   const columns: Array<ColumnDef<(typeof view.qualityFlags)[number]>> = [
-    { header: '类型', accessorKey: 'flagType' },
+    {
+      header: '类型',
+      cell: ({ row }) => qualityFlagTypeLabel(row.original.flagType),
+    },
     {
       header: '级别',
       cell: ({ row }) => severityLabel(row.original.severity),
     },
-    { header: '对象类型', accessorKey: 'entityType' },
+    {
+      header: '对象类型',
+      cell: ({ row }) => qualityEntityTypeLabel(row.original.entityType),
+    },
     { header: '对象 ID', accessorKey: 'entityId' },
     { header: '说明', accessorKey: 'message' },
   ];
@@ -104,7 +111,7 @@ export function QualityPage({ view, onOpenDetail }: QualityPageProps) {
             </MetaPill>
             <span>覆盖率：{(view.dataHealth.coverageRate * 100).toFixed(1)}%</span>
             <span>未分类任务：{(view.dataHealth.uncategorizedRate * 100).toFixed(1)}%</span>
-            <span>高风险 flag：{(view.dataHealth.highSeverityRate * 100).toFixed(1)}%</span>
+            <span>高风险提醒：{(view.dataHealth.highSeverityRate * 100).toFixed(1)}%</span>
           </div>
         }
       >
@@ -160,7 +167,7 @@ export function QualityPage({ view, onOpenDetail }: QualityPageProps) {
         note="这张图回答：当前最值得优先处理的是明细缺失、核验缺口，还是主题识别不足。"
         option={flagOption}
         source="derived"
-        method="按 flagType 聚合"
+        method="按质量提醒类型聚合"
         reliability="高"
         caution="类型数量高不代表影响一定最大，需结合质量总览理解"
       />

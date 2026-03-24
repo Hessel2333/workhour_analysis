@@ -1,3 +1,5 @@
+import { formatNumber } from './format';
+
 type ChartOption = Record<string, any>;
 
 const AXIS_LABEL = {
@@ -33,6 +35,11 @@ function themeAxis(
     ...axis,
     axisLabel: {
       ...AXIS_LABEL,
+      ...(axis.type === 'value' && axis.axisLabel?.formatter == null
+        ? {
+            formatter: (value: number) => formatNumber(Number(value), 1),
+          }
+        : {}),
       ...(axis.axisLabel ?? {}),
     },
     axisLine: {

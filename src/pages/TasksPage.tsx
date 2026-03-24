@@ -2,14 +2,45 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ChartPanel } from '../components/ChartPanel';
 import { CollapsiblePanel } from '../components/CollapsiblePanel';
 import { DataTable } from '../components/DataTable';
+import { Panel } from '../components/Panel';
+import { topicColor } from '../lib/chartColors';
 import { formatNumber, formatPercent } from '../lib/format';
-import type { AnalyticsView } from '../types';
+import { classifyTaskWorkstream, WORKSTREAM_ORDER } from '../lib/taskSignals';
+import type { AnalyticsView, DetailSelection } from '../types';
 
 interface TasksPageProps {
   view: AnalyticsView;
+  onOpenDetail: (detail: DetailSelection) => void;
 }
 
-export function TasksPage({ view }: TasksPageProps) {
+export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
+  const reviewTasks = view.tasks.filter(
+    (task) =>
+      task.topicLabel === '未分类' ||
+      task.topicLabel === '待确认' ||
+      task.topicConfidence < 0.9,
+  );
+  const uncategorizedCount = view.tasks.filter((task) => task.topicLabel === '未分类').length;
+  const pendingCount = view.tasks.filter((task) => task.topicLabel === '待确认').length;
+  const lowConfidenceCount = view.tasks.filter(
+    (task) =>
+      task.topicLabel !== '未分类' &&
+      task.topicLabel !== '待确认' &&
+      task.topicConfidence < 0.9,
+  ).length;
+  const pendingTasks = view.tasks.filter((task) => task.topicLabel === '待确认');
+  const reviewTasksWithoutPending = reviewTasks.filter((task) => task.topicLabel !== '待确认');
+  const workstreamHours = WORKSTREAM_ORDER.map((label) => ({
+    label,
+    totalHours: view.tasks
+      .filter((task) => classifyTaskWorkstream(task) === label)
+      .reduce((sum, task) => sum + task.reportHour, 0),
+  })).filter((item) => item.totalHours > 0);
+  const totalWorkstreamHours = workstreamHours.reduce((sum, item) => sum + item.totalHours, 0);
+  const dominantWorkstream = [...workstreamHours].sort((left, right) => right.totalHours - left.totalHours)[0];
+  const reworkLikeHours = workstreamHours.find((item) => item.label === '修补型')?.totalHours ?? 0;
+  const buildLikeHours = workstreamHours.find((item) => item.label === '建设型')?.totalHours ?? 0;
+
   const topicOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 24, right: 20, top: 24, bottom: 24, containLabel: true },
@@ -19,7 +50,54 @@ export function TasksPage({ view }: TasksPageProps) {
       {
         type: 'bar',
         data: view.topicStats.map((item) => item.totalHours),
-        itemStyle: { color: '#6e6dfb', borderRadius: 10 },
+        itemStyle: {
+          borderRadius: 10,
+          color: (params: { dataIndex: number }) =>
+            topicColor(view.topicStats[params.dataIndex]?.topicLabel ?? '', params.dataIndex),
+        },
+      },
+    ],
+  };
+
+  const portraitOption = {
+    tooltip: {
+      trigger: 'item',
+      formatter: (params: { name?: string; value?: number }) => {
+        const hours = Number(params.value ?? 0);
+        return [
+          `<strong>${String(params.name ?? '')}</strong>`,
+          `工时：${formatNumber(hours)} h`,
+          `占比：${formatPercent(totalWorkstreamHours ? hours / totalWorkstreamHours : 0)}`,
+        ].join('<br/>');
+      },
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: ['48%', '72%'],
+        center: ['50%', '52%'],
+        label: {
+          formatter: '{b}\n{d}%',
+          color: '#0f172a',
+          fontWeight: 600,
+        },
+        labelLine: { length: 10, length2: 8 },
+        data: workstreamHours.map((item) => ({
+          name: item.label,
+          value: Number(item.totalHours.toFixed(1)),
+          itemStyle: {
+            color:
+              item.label === '建设型'
+                ? '#2563eb'
+                : item.label === '修补型'
+                  ? '#ef4444'
+                  : item.label === '支撑型'
+                    ? '#f59e0b'
+                    : item.label === '成长型'
+                      ? '#8b5cf6'
+                      : '#94a3b8',
+          },
+        })),
       },
     ],
   };
@@ -31,6 +109,7 @@ export function TasksPage({ view }: TasksPageProps) {
         type: 'treemap',
         roam: false,
         breadcrumb: { show: false },
+        color: view.topicStats.map((item, index) => topicColor(item.topicLabel, index)),
         data: view.topicStats.map((item) => ({
           name: item.topicLabel,
           value: item.taskCount,
@@ -79,8 +158,57 @@ export function TasksPage({ view }: TasksPageProps) {
     },
   ];
 
+  const reviewColumns: Array<ColumnDef<(typeof reviewTasks)[number]>> = [
+    { header: '日期', accessorKey: 'date' },
+    { header: '项目', accessorKey: 'projectName' },
+    { header: '任务名称', accessorKey: 'taskName' },
+    { header: '当前分类', accessorKey: 'topicLabel' },
+    {
+      header: '可信度',
+      cell: ({ row }) => formatPercent(row.original.topicConfidence),
+    },
+    {
+      header: '原因',
+      cell: ({ row }) =>
+        row.original.topicLabel === '未分类'
+          ? '未命中规则词典'
+          : `关键词：${row.original.keywordHits.join(' / ') || '规则命中较弱'}`,
+    },
+  ];
+
   return (
     <div className="page-grid">
+      <Panel
+        title="任务画像"
+        subtitle="先看公司时间主要花在建设、修补还是支撑工作"
+        note="长周期数据下，任务分类已经更稳定，但复杂语义任务仍建议人工复核。"
+        className="panel-wide panel-strip"
+      >
+        <div className="callout">
+          <strong>{dominantWorkstream ? `${dominantWorkstream.label} 是当前占比最高的任务类型。` : '当前没有可解释的任务画像。'}</strong>
+          <span>
+            {buildLikeHours > 0 || reworkLikeHours > 0
+              ? `建设型工时 ${formatNumber(buildLikeHours)}h，修补型工时 ${formatNumber(reworkLikeHours)}h。先看整体画像，再回看复核清单。`
+              : `当前共 ${view.tasks.length} 条任务，未分类 ${uncategorizedCount} 条，待确认 ${pendingCount} 条，低可信度 ${lowConfidenceCount} 条。`}
+          </span>
+        </div>
+      </Panel>
+
+      <ChartPanel
+        title="公司整体任务类型画像"
+        subtitle="整体时间更偏建设、修补还是支撑工作"
+        note={
+          dominantWorkstream
+            ? `${dominantWorkstream.label} 当前占比最高，${reworkLikeHours > buildLikeHours ? '修补型工时已经高于建设型，建议重点关注返工压力。' : '整体仍以建设型工作为主。'}`
+            : '当前没有足够任务样本用于画像。'
+        }
+        option={portraitOption}
+        source="derived"
+        method="按任务主题归并为建设型 / 修补型 / 支撑型 / 成长型 / 待确认"
+        reliability="中"
+        caution="整体画像适合看公司工作重心，不适合替代项目级或员工级复盘"
+      />
+
       <ChartPanel
         title="主题分类"
         subtitle="工时主要集中在哪类工作"
@@ -103,11 +231,66 @@ export function TasksPage({ view }: TasksPageProps) {
       />
 
       <CollapsiblePanel
+        title="待确认清单"
+        subtitle="这些任务有明显主题，但语义仍需要人工拍板"
+        note="常见于日期占位任务、版本名、泛化项目名或内部缩写。点击行可直接打开任务详情。"
+        defaultOpen={pendingTasks.length <= 18}
+      >
+        <DataTable
+          columns={reviewColumns}
+          data={pendingTasks}
+          onRowClick={(task) =>
+            onOpenDetail({
+              kind: 'task',
+              title: '任务聚焦分析',
+              subtitle: task.taskName,
+              taskId: task.taskId,
+              rows: [],
+            })
+          }
+        />
+      </CollapsiblePanel>
+
+      <CollapsiblePanel
+        title="分类复核清单"
+        subtitle="人工复核剩余未分类与低可信度任务"
+        note="建议优先补充高频任务关键词，再回看主题分布图。点击行可直接打开任务详情。"
+        defaultOpen={reviewTasksWithoutPending.length <= 24}
+      >
+        <DataTable
+          columns={reviewColumns}
+          data={reviewTasksWithoutPending}
+          onRowClick={(task) =>
+            onOpenDetail({
+              kind: 'task',
+              title: '任务聚焦分析',
+              subtitle: task.taskName,
+              taskId: task.taskId,
+              rows: [],
+            })
+          }
+        />
+      </CollapsiblePanel>
+
+      <CollapsiblePanel
         title="任务明细"
         subtitle="逐条核查主题映射与任务名"
         note="分类结果来自规则词典，未分类项会在数据质量页集中提示。"
+        defaultOpen
       >
-        <DataTable columns={columns} data={view.tasks} />
+        <DataTable
+          columns={columns}
+          data={view.tasks}
+          onRowClick={(task) =>
+            onOpenDetail({
+              kind: 'task',
+              title: '任务聚焦分析',
+              subtitle: task.taskName,
+              taskId: task.taskId,
+              rows: [],
+            })
+          }
+        />
       </CollapsiblePanel>
     </div>
   );
