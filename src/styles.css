@@ -287,6 +287,24 @@ button:disabled {
   display: none;
 }
 
+.mobile-page-group {
+  display: grid;
+  gap: 8px;
+}
+
+.mobile-page-group + .mobile-page-group {
+  margin-top: 8px;
+}
+
+.mobile-page-section-label {
+  padding: 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .mobile-page-scroll {
   display: flex;
   gap: 8px;
@@ -323,6 +341,12 @@ button:disabled {
 
 .mobile-page-icon {
   font-size: 14px;
+}
+
+.mobile-page-button-secondary {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
 }
 
 .toolbar,
@@ -1206,9 +1230,37 @@ button:disabled {
   padding: 18px;
 }
 
+.focus-chart-card.touch-ready {
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease;
+}
+
+.focus-chart-card.touch-active {
+  transform: scale(0.992);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
 .focus-chart-header h4 {
   margin: 6px 0 0;
   font-size: 20px;
+}
+
+.focus-touch-hint {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 24px;
+  margin-top: 8px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--surface-control);
+  color: var(--muted-strong);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .focus-table-card {
@@ -1656,6 +1708,10 @@ button:disabled {
     margin-top: 10px;
   }
 
+  .mobile-page-group + .mobile-page-group {
+    margin-top: 10px;
+  }
+
   .app-main {
     padding: 18px 18px 28px;
   }
@@ -1670,6 +1726,14 @@ button:disabled {
 
   .focus-intro h3 {
     font-size: 28px;
+  }
+
+  .focus-chart-card {
+    padding: 16px;
+  }
+
+  .focus-chart-header h4 {
+    font-size: 18px;
   }
 }
 
@@ -1883,6 +1947,18 @@ button:disabled {
 
   .metrics-grid {
     gap: 12px;
+  }
+
+  .mobile-page-button {
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .mobile-page-button-secondary {
+    min-height: 34px;
+    padding: 0 10px;
+    font-size: 12px;
   }
 
   .metric-card,

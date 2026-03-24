@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ReactECharts from 'echarts-for-react';
 import { useDarkMode } from '../hooks/useDarkMode';
+import { useViewport } from '../hooks/useViewport';
 import { withChartTheme } from '../lib/chartTheme';
 import { projectColor, topicColor } from '../lib/chartColors';
 import { formatNumber, formatPercent } from '../lib/format';
@@ -41,14 +42,47 @@ function MiniMetric({
   );
 }
 
-function chartShell(title: string, subtitle: string, option: Record<string, unknown>, isDark: boolean) {
+function FocusChartShell({
+  title,
+  subtitle,
+  option,
+  isDark,
+  isCompact,
+  isPhone,
+}: {
+  title: string;
+  subtitle: string;
+  option: Record<string, unknown>;
+  isDark: boolean;
+  isCompact: boolean;
+  isPhone: boolean;
+}) {
+  const [touchActive, setTouchActive] = useState(false);
+  const hasLegend = Boolean((option as { legend?: unknown }).legend);
+  const chartHeight = isPhone
+    ? hasLegend
+      ? 260
+      : 220
+    : isCompact
+      ? hasLegend
+        ? 280
+        : 240
+      : 240;
+
   return (
-    <section className="focus-chart-card">
+    <section
+      className={`focus-chart-card ${isCompact ? 'touch-ready' : ''} ${touchActive ? 'touch-active' : ''}`.trim()}
+      onPointerDown={() => setTouchActive(true)}
+      onPointerUp={() => setTouchActive(false)}
+      onPointerLeave={() => setTouchActive(false)}
+      onPointerCancel={() => setTouchActive(false)}
+    >
       <div className="focus-chart-header">
         <p className="panel-kicker">{title}</p>
         <h4>{subtitle}</h4>
+        {isCompact ? <span className="focus-touch-hint">轻触图表查看数据</span> : null}
       </div>
-      <ReactECharts option={withChartTheme(option, isDark)} style={{ height: 240 }} />
+      <ReactECharts option={withChartTheme(option, isDark, isCompact)} style={{ height: chartHeight }} />
     </section>
   );
 }
@@ -105,6 +139,7 @@ export function DetailDrawer({
   onClose,
 }: DetailDrawerProps) {
   const isDark = useDarkMode();
+  const { isCompact, isPhone } = useViewport();
   const [activeTab, setActiveTab] = useState<FocusTab>('overview');
   const trendGranularity: TrendGranularity =
     filters.periodMode === 'month' ? 'day' : 'month';
@@ -404,21 +439,25 @@ export function DetailDrawer({
               : '投入相对集中，可直接看趋势变化。'}
           </p>
           <div className="focus-chart-grid">
-            {chartShell('工时趋势', '按日期观察个人投入变化', hoursTrendOption, isDark)}
-            {chartShell('项目构成', '该员工在不同项目上的工时分布', projectStackOption, isDark)}
-            {chartShell(
-              '项目参与演进',
-              trendGranularity === 'day' ? '按天看参与项目占比变化' : '按月看参与项目占比变化',
-              projectEvolutionOption,
-              isDark,
-            )}
-            {chartShell(
-              '任务类型演进',
-              trendGranularity === 'day' ? '按天看任务类型占比变化' : '按月看任务类型占比变化',
-              topicEvolutionOption,
-              isDark,
-            )}
-            {chartShell('任务主题', '当前主要工作类型构成', topicBarOption, isDark)}
+            <FocusChartShell title="工时趋势" subtitle="按日期观察个人投入变化" option={hoursTrendOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell title="项目构成" subtitle="该员工在不同项目上的工时分布" option={projectStackOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell
+              title="项目参与演进"
+              subtitle={trendGranularity === 'day' ? '按天看参与项目占比变化' : '按月看参与项目占比变化'}
+              option={projectEvolutionOption}
+              isDark={isDark}
+              isCompact={isCompact}
+              isPhone={isPhone}
+            />
+            <FocusChartShell
+              title="任务类型演进"
+              subtitle={trendGranularity === 'day' ? '按天看任务类型占比变化' : '按月看任务类型占比变化'}
+              option={topicEvolutionOption}
+              isDark={isDark}
+              isCompact={isCompact}
+              isPhone={isPhone}
+            />
+            <FocusChartShell title="任务主题" subtitle="当前主要工作类型构成" option={topicBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
           </div>
         </>
       );
@@ -719,21 +758,25 @@ export function DetailDrawer({
               : '当前参与面与人均投入基本匹配。'}
           </p>
           <div className="focus-chart-grid">
-            {chartShell('项目趋势', '按日期观察项目投入变化', trendOption, isDark)}
-            {chartShell('人员构成', '项目内各成员投入分布', participantBarOption, isDark)}
-            {chartShell(
-              '任务类型演进',
-              trendGranularity === 'day' ? '按天看任务类型占比变化' : '按月看任务类型占比变化',
-              topicEvolutionOption,
-              isDark,
-            )}
-            {chartShell(
-              '阶段演进',
-              trendGranularity === 'day' ? '按天看项目所处阶段变化' : '按月看项目所处阶段变化',
-              stageEvolutionOption,
-              isDark,
-            )}
-            {chartShell('任务主题', '项目当前主要工作类型', topicBarOption, isDark)}
+            <FocusChartShell title="项目趋势" subtitle="按日期观察项目投入变化" option={trendOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell title="人员构成" subtitle="项目内各成员投入分布" option={participantBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell
+              title="任务类型演进"
+              subtitle={trendGranularity === 'day' ? '按天看任务类型占比变化' : '按月看任务类型占比变化'}
+              option={topicEvolutionOption}
+              isDark={isDark}
+              isCompact={isCompact}
+              isPhone={isPhone}
+            />
+            <FocusChartShell
+              title="阶段演进"
+              subtitle={trendGranularity === 'day' ? '按天看项目所处阶段变化' : '按月看项目所处阶段变化'}
+              option={stageEvolutionOption}
+              isDark={isDark}
+              isCompact={isCompact}
+              isPhone={isPhone}
+            />
+            <FocusChartShell title="任务主题" subtitle="项目当前主要工作类型" option={topicBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
           </div>
         </>
       );
@@ -861,9 +904,9 @@ export function DetailDrawer({
           </div>
           <p className="focus-brief">这个日期视角适合识别异常高负载、多人切换和项目投入是否过于集中。</p>
           <div className="focus-chart-grid">
-            {chartShell('员工负载', '当天每位成员投入情况', employeeBarOption, isDark)}
-            {chartShell('项目分布', '当天工时流向了哪些项目', projectBarOption, isDark)}
-            {chartShell('主题构成', '当天任务类型占比', topicPieOption, isDark)}
+            <FocusChartShell title="员工负载" subtitle="当天每位成员投入情况" option={employeeBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell title="项目分布" subtitle="当天工时流向了哪些项目" option={projectBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell title="主题构成" subtitle="当天任务类型占比" option={topicPieOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
           </div>
         </>
       );
@@ -966,10 +1009,10 @@ export function DetailDrawer({
             当前可结合关联任务判断它是独立事项还是更大工作流的一部分。
           </p>
           <div className="focus-chart-grid">
-            {chartShell(
-              '项目趋势',
-              '该任务所在项目的近期投入',
-              {
+            <FocusChartShell
+              title="项目趋势"
+              subtitle="该任务所在项目的近期投入"
+              option={{
                 tooltip: { trigger: 'axis' },
                 grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
                 xAxis: { type: 'category', data: globalTrendLabels },
@@ -982,13 +1025,15 @@ export function DetailDrawer({
                     data: fillGroupedSeries(globalTrendLabels, projectTrend).map((item) => item.value),
                   },
                 ],
-              },
-              isDark,
-            )}
-            {chartShell(
-              '个人趋势',
-              '责任人的近期任务投入',
-              {
+              }}
+              isDark={isDark}
+              isCompact={isCompact}
+              isPhone={isPhone}
+            />
+            <FocusChartShell
+              title="个人趋势"
+              subtitle="责任人的近期任务投入"
+              option={{
                 tooltip: { trigger: 'axis' },
                 grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
                 xAxis: { type: 'category', data: globalTrendLabels },
@@ -1001,9 +1046,11 @@ export function DetailDrawer({
                     data: fillGroupedSeries(globalTrendLabels, employeeTrend).map((item) => item.value),
                   },
                 ],
-              },
-              isDark,
-            )}
+              }}
+              isDark={isDark}
+              isCompact={isCompact}
+              isPhone={isPhone}
+            />
           </div>
         </>
       );

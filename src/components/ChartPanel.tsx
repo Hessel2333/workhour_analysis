@@ -6,6 +6,7 @@ import { withChartTheme } from '../lib/chartTheme';
 import { MetaPill } from './MetaPill';
 import { Panel } from './Panel';
 import { useDarkMode } from '../hooks/useDarkMode';
+import { useViewport } from '../hooks/useViewport';
 
 interface ChartPanelProps {
   title: string;
@@ -41,6 +42,7 @@ export function ChartPanel({
   loading = false,
 }: ChartPanelProps) {
   const isDark = useDarkMode();
+  const { isPhone, isCompact } = useViewport();
   const [showDetails, setShowDetails] = useState(false);
   const sourceLabelMap = {
     real: '真实工时',
@@ -48,6 +50,13 @@ export function ChartPanel({
     derived: '规则推导',
     model: '模型生成',
   } as const;
+
+  const hasLegend = Boolean((option as { legend?: unknown }).legend);
+  const resolvedHeight = isPhone
+    ? Math.max(height - 84 + (hasLegend ? 28 : 0), 220)
+    : isCompact
+      ? Math.max(height - 48 + (hasLegend ? 20 : 0), 250)
+      : height;
 
   return (
     <Panel
@@ -94,8 +103,8 @@ export function ChartPanel({
         </div>
       ) : (
         <ReactECharts
-          option={withChartTheme(option, isDark)}
-          style={{ height }}
+          option={withChartTheme(option, isDark, isCompact)}
+          style={{ height: resolvedHeight }}
           onEvents={
             onChartClick
               ? {
