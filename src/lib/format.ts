@@ -1,9 +1,12 @@
 export function formatNumber(value: number, digits = 1) {
-  return Number.isFinite(value) ? value.toFixed(digits) : '0.0';
+  if (!Number.isFinite(value)) return '0';
+  const normalizedDigits = Math.min(Math.max(digits, 0), 1);
+  return Number(value.toFixed(normalizedDigits)).toString();
 }
 
 export function formatPercent(value: number) {
-  return `${(value * 100).toFixed(1)}%`;
+  if (!Number.isFinite(value)) return '0%';
+  return `${Number((value * 100).toFixed(1)).toString()}%`;
 }
 
 export function formatCompactDate(date: string) {

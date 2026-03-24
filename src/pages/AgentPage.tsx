@@ -4,6 +4,7 @@ import { CollapsiblePanel } from '../components/CollapsiblePanel';
 import { MetricCard } from '../components/MetricCard';
 import { MetaPill } from '../components/MetaPill';
 import { Panel } from '../components/Panel';
+import { useDarkMode } from '../hooks/useDarkMode';
 import { severityLabel } from '../lib/format';
 import type { AnalyticsView, PageKey } from '../types';
 
@@ -113,17 +114,23 @@ export function AgentPage({ view, onNavigate }: AgentPageProps) {
     }
   };
 
+  const isDark = useDarkMode();
+
   const severityOption = {
     tooltip: { trigger: 'item' },
     series: [
       {
         type: 'pie',
         radius: ['56%', '76%'],
-        label: { formatter: '{b}\n{d}%', color: '#0f172a', fontWeight: 600 },
+        label: { 
+          formatter: '{b}\n{d}%', 
+          color: isDark ? '#f5f5f7' : '#1d1d1f', 
+          fontWeight: 600 
+        },
         data: [
-          { name: '高风险', value: issueSummary.high, itemStyle: { color: '#ef4444' } },
-          { name: '中风险', value: issueSummary.medium, itemStyle: { color: '#f59e0b' } },
-          { name: '低风险', value: issueSummary.low, itemStyle: { color: '#94a3b8' } },
+          { name: '高风险', value: issueSummary.high, itemStyle: { color: '#ff3b30' } },
+          { name: '中风险', value: issueSummary.medium, itemStyle: { color: '#ff9500' } },
+          { name: '低风险', value: issueSummary.low, itemStyle: { color: '#8e8e93' } },
         ],
       },
     ],
@@ -131,7 +138,7 @@ export function AgentPage({ view, onNavigate }: AgentPageProps) {
 
   const scopeOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: 24, right: 20, top: 24, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'value' },
     yAxis: {
       type: 'category',
@@ -141,14 +148,14 @@ export function AgentPage({ view, onNavigate }: AgentPageProps) {
       {
         type: 'bar',
         data: [scopeSummary.employee, scopeSummary.project, scopeSummary.dataset],
-        itemStyle: { color: '#2563eb', borderRadius: 10 },
+        itemStyle: { color: isDark ? '#0a84ff' : '#0071e3', borderRadius: 10 },
       },
     ],
   };
 
   const recommendationOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: 24, right: 20, top: 24, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'category', data: ['P1', 'P2', 'P3'] },
     yAxis: { type: 'value' },
     series: [
@@ -161,7 +168,7 @@ export function AgentPage({ view, onNavigate }: AgentPageProps) {
         ],
         itemStyle: {
           color: (params: { dataIndex: number }) =>
-            ['#ef4444', '#f59e0b', '#94a3b8'][params.dataIndex] ?? '#94a3b8',
+            [isDark ? '#ff3b30' : '#ff3b30', isDark ? '#ff9500' : '#ff9500', isDark ? '#8e8e93' : '#94a3b8'][params.dataIndex] ?? '#8e8e93',
           borderRadius: 10,
         },
       },

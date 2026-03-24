@@ -54,6 +54,7 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
     trendGranularity,
   ));
   const topProjects = view.projectStats.slice(0, 6);
+  const topRiverProjects = view.projectStats.slice(0, 5);
   const topProjectNames = topProjects.map((project) => project.projectName);
   const topicNames = view.topicStats.slice(0, 6).map((topic) => topic.topicLabel);
   const topEmployee = view.employeeStats[0];
@@ -173,7 +174,7 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
 
   const projectTrendOption = {
     tooltip: { trigger: 'axis' },
-    grid: { left: 24, right: 20, top: 30, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 30, bottom: 40, containLabel: true },
     xAxis: { type: 'category', data: groupedDayHours.map((item) => item.label) },
     yAxis: { type: 'value' },
     series: [
@@ -189,7 +190,7 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
   const stackedProjectOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: { top: 0 },
-    grid: { left: 24, right: 20, top: 50, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 50, bottom: 40, containLabel: true },
     xAxis: { type: 'category', data: trendLabels },
     yAxis: { type: 'value' },
     series: topProjects.map((project, index) => ({
@@ -205,11 +206,37 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
     })),
   };
 
+  const riverSeriesProjects = [
+    ...topRiverProjects.map((project) => project.projectName),
+    ...(view.projectStats.length > topRiverProjects.length ? ['其他'] : []),
+  ];
+  const riverGroupedSeries = riverSeriesProjects.map((projectName) => ({
+    projectName,
+    points: groupSeriesByGranularity(
+      view.uniqueDates.map((date) => {
+        const value =
+          projectName === '其他'
+            ? view.tasks
+                .filter(
+                  (task) =>
+                    !topRiverProjects.some((project) => project.projectName === task.projectName) &&
+                    task.date === date,
+                )
+                .reduce((sum, task) => sum + task.reportHour, 0)
+            : view.tasks
+                .filter((task) => task.projectName === projectName && task.date === date)
+                .reduce((sum, task) => sum + task.reportHour, 0);
+        return { date, value };
+      }),
+      trendGranularity,
+    ),
+  }));
+
   const riverOption = {
     tooltip: { trigger: 'axis' },
     legend: { top: 0 },
-    grid: { left: 24, right: 20, top: 50, bottom: 24, containLabel: true },
-    xAxis: { type: 'category', data: groupedProjectSeries[0]?.points.map((item) => item.label) ?? [] },
+    grid: { left: 24, right: 20, top: 50, bottom: 40, containLabel: true },
+    xAxis: { type: 'category', data: riverGroupedSeries[0]?.points.map((item) => item.label) ?? [] },
     yAxis: {
       type: 'value',
       name: '工时占比',
@@ -218,15 +245,15 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
       },
       max: 100,
     },
-    series: topProjects.map((project, index) => {
+    series: riverSeriesProjects.map((projectName, index) => {
       const points = fillGroupedSeries(
         trendLabels,
-        groupedProjectSeries.find((item) => item.projectName === project.projectName)?.points ?? [],
+        riverGroupedSeries.find((item) => item.projectName === projectName)?.points ?? [],
       );
       const totalByLabel = new Map(
         trendLabels.map((label) => [
           label,
-          groupedProjectSeries.reduce((sum, series) => {
+          riverGroupedSeries.reduce((sum, series) => {
             const matched = series.points.find((item) => item.label === label);
             return sum + (matched?.value ?? 0);
           }, 0),
@@ -234,7 +261,7 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
       );
 
       return {
-        name: project.projectName,
+        name: projectName,
         type: 'line',
         smooth: true,
         stack: 'share',
@@ -246,7 +273,7 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
           const total = totalByLabel.get(point.label) ?? 0;
           return total ? Number(((point.value / total) * 100).toFixed(1)) : 0;
         }),
-        color: projectColor(index),
+        color: projectName === '其他' ? '#cbd5e1' : projectColor(index),
       };
     }),
   };
@@ -320,7 +347,7 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
   const overtimeTrendOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: { top: 0 },
-    grid: { left: 24, right: 20, top: 50, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 50, bottom: 40, containLabel: true },
     xAxis: { type: 'category', data: overtimeLabels },
     yAxis: { type: 'value', name: '加班小时' },
     series: [
@@ -350,7 +377,7 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
 
   const overtimeEmployeeOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: 24, right: 20, top: 20, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 20, bottom: 40, containLabel: true },
     xAxis: { type: 'value', name: '加班小时' },
     yAxis: {
       type: 'category',
@@ -530,10 +557,10 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
       <ChartPanel
         title="项目占比河流图"
         subtitle="看项目占比随时间怎么变化"
-        note={`这张图回答：不同时间段里，哪些项目在吞吐更多工时。适合看结构迁移，而不是看单日极值。当前按${trendGranularity === 'day' ? '日' : '月'}聚合。`}
+        note={`这张图默认只保留 Top 5 项目，并把其余项目合并为“其他”。适合看结构迁移，而不是看单日极值。当前按${trendGranularity === 'day' ? '日' : '月'}聚合。`}
         option={riverOption}
         source="real"
-        method={`按项目和${trendGranularity === 'day' ? '日' : '月'}聚合的河流图`}
+        method={`按项目和${trendGranularity === 'day' ? '日' : '月'}聚合的占比河流图（Top 5 + 其他）`}
         reliability="中"
         caution="更适合看项目占比变化，不适合精确比较同一时间点的绝对值"
       />

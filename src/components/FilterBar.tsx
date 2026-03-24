@@ -1,4 +1,8 @@
+import { useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { useToastStore } from '../store/toastStore';
 import type { BaseDataset, Filters } from '../types';
+import { Popover, PopoverMenu } from './Popover';
 
 interface FilterBarProps {
   dataset: BaseDataset;
@@ -64,8 +68,20 @@ export function FilterBar({
   onReset,
   onToggleImmersive,
 }: FilterBarProps) {
+  const addToast = useToastStore((state) => state.addToast);
+
+  useEffect(() => {
+    if (parseError) {
+      addToast(parseError, 'error');
+    }
+  }, [parseError, addToast]);
+
   const topicOptions = Array.from(new Set(dataset.taskTopics.map((item) => item.topicLabel)));
   const projectOptions = Array.from(new Set(dataset.tasks.map((item) => item.projectName)));
+  const employeeOptions = dataset.employees
+    .filter((e) => e.hasDetail)
+    .map((e) => ({ value: e.employeeId, label: e.name }));
+
   const focusDate = filters.startDate || dataset.dateRange.start;
   const periodLabel =
     filters.periodMode === 'month'
@@ -102,104 +118,137 @@ export function FilterBar({
     onPatchFilters(nextRange);
   };
 
+  const ChevronDown = (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+      <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+
   return (
     <div className="filter-wrap">
-      <div className="toolbar toolbar-stacked">
-        <div className="toolbar-row toolbar-row-period">
-          <div className="period-switcher">
-            <div className="mini-segment">
-              {[
-                ['month', '月份'],
-                ['year', '年份'],
-              ].map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`mini-segment-button ${filters.periodMode === value ? 'active' : ''}`.trim()}
-                  onClick={() => changePeriodMode(value as 'month' | 'year')}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="period-navigator">
+      <div className="toolbar">
+        <div className="toolbar-section">
+          <div className="mini-segment">
+            {[
+              ['month', '月份'],
+              ['year', '年份'],
+            ].map(([value, label]) => (
               <button
+                key={value}
                 type="button"
-                className="ghost-button toolbar-button period-arrow"
-                aria-label={`上一${filters.periodMode === 'month' ? '月' : '年'}`}
-                onClick={() => navigatePeriod(-1)}
+                className={`mini-segment-button ${filters.periodMode === value ? 'active' : ''}`.trim()}
+                onClick={() => changePeriodMode(value as 'month' | 'year')}
+                style={{ position: 'relative', zIndex: 1 }}
               >
-                ‹
+                {filters.periodMode === value && (
+                  <motion.div
+                    layoutId="active-pill"
+                    className="active-pill-bg"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'var(--panel-strong)',
+                      borderRadius: 999,
+                      boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08), inset 0 0 0 1px rgba(15, 23, 42, 0.04)',
+                      zIndex: -1,
+                    }}
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
+                  />
+                )}
+                {label}
               </button>
-              <div className="period-label">{periodLabel}</div>
-              <button
-                type="button"
-                className="ghost-button toolbar-button period-arrow"
-                aria-label={`下一${filters.periodMode === 'month' ? '月' : '年'}`}
-                onClick={() => navigatePeriod(1)}
-              >
-                ›
-              </button>
-            </div>
+            ))}
           </div>
         </div>
 
-        <div className="toolbar-row toolbar-row-filters">
-          <div className="filters filters-inline filters-inline-secondary">
-            <label className="field field-inline-control">
-              <select
-                aria-label="项目筛选"
-                value={filters.projectName}
-                onChange={(event) => onPatchFilters({ projectName: event.target.value })}
-              >
-                <option value="">全部项目</option>
-                {projectOptions.map((projectName) => (
-                  <option key={projectName} value={projectName}>
-                    {projectName}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field field-inline-control">
-              <select
-                aria-label="主题筛选"
-                value={filters.topicLabel}
-                onChange={(event) => onPatchFilters({ topicLabel: event.target.value })}
-              >
-                <option value="">全部主题</option>
-                {topicOptions.map((topicLabel) => (
-                  <option key={topicLabel} value={topicLabel}>
-                    {topicLabel}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field field-inline-control field-employee">
-              <select
-                aria-label="员工筛选"
-                value={filters.employeeId}
-                onChange={(event) => onPatchFilters({ employeeId: event.target.value })}
-              >
-                <option value="">全部员工</option>
-                {dataset.employees
-                  .filter((employee) => employee.hasDetail)
-                  .map((employee) => (
-                    <option key={employee.employeeId} value={employee.employeeId}>
-                      {employee.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          </div>
-          <div className="toolbar-actions toolbar-actions-inline">
+        <div className="toolbar-section">
+          <div className="period-navigator">
             <button
               type="button"
-              className={`ghost-button toolbar-button view-toggle ${immersiveMode ? 'active' : ''}`.trim()}
+              className="period-arrow"
+              aria-label={`上一${filters.periodMode === 'month' ? '月' : '年'}`}
+              onClick={() => navigatePeriod(-1)}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7.5 9L4.5 6L7.5 3" />
+              </svg>
+            </button>
+            <div className="period-label">{periodLabel}</div>
+            <button
+              type="button"
+              className="period-arrow"
+              aria-label={`下一${filters.periodMode === 'month' ? '月' : '年'}`}
+              onClick={() => navigatePeriod(1)}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4.5 9L7.5 6L4.5 3" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-section">
+          <div className="filters-inline-secondary" style={{ display: 'flex', gap: '8px' }}>
+            <Popover
+              trigger={
+                <button className="picker-button">
+                  {filters.projectName || '全部项目'} {ChevronDown}
+                </button>
+              }
+            >
+              <PopoverMenu
+                options={[
+                  { value: '', label: '全部项目' },
+                  ...projectOptions.map((p) => ({ value: p, label: p })),
+                ]}
+                value={filters.projectName}
+                onChange={(p) => onPatchFilters({ projectName: p })}
+              />
+            </Popover>
+
+            <Popover
+              trigger={
+                <button className="picker-button">
+                  {filters.topicLabel || '全部主题'} {ChevronDown}
+                </button>
+              }
+            >
+              <PopoverMenu
+                options={[
+                  { value: '', label: '全部主题' },
+                  ...topicOptions.map((t) => ({ value: t, label: t })),
+                ]}
+                value={filters.topicLabel}
+                onChange={(t) => onPatchFilters({ topicLabel: t })}
+              />
+            </Popover>
+
+            <Popover
+              trigger={
+                <button className="picker-button">
+                  {dataset.employees.find((e) => e.employeeId === filters.employeeId)?.name || '全部员工'} {ChevronDown}
+                </button>
+              }
+            >
+              <PopoverMenu
+                options={[
+                  { value: '', label: '全部员工' },
+                  ...employeeOptions,
+                ]}
+                value={filters.employeeId}
+                onChange={(e) => onPatchFilters({ employeeId: e })}
+              />
+            </Popover>
+          </div>
+          <div className="toolbar-actions">
+            <button
+              type="button"
+              className={`ghost-button ${immersiveMode ? 'active' : ''}`.trim()}
               onClick={() => onToggleImmersive(!immersiveMode)}
             >
               {immersiveMode ? '退出沉浸' : '沉浸'}
             </button>
-            <button className="ghost-button secondary-action" onClick={onReset} type="button">
+            <button className="ghost-button" onClick={onReset} type="button">
               重置
             </button>
           </div>

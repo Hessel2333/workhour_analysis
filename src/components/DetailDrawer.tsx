@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ReactECharts from 'echarts-for-react';
+import { useDarkMode } from '../hooks/useDarkMode';
 import { withChartTheme } from '../lib/chartTheme';
 import { projectColor, topicColor } from '../lib/chartColors';
 import { formatNumber, formatPercent } from '../lib/format';
@@ -40,14 +41,14 @@ function MiniMetric({
   );
 }
 
-function chartShell(title: string, subtitle: string, option: Record<string, unknown>) {
+function chartShell(title: string, subtitle: string, option: Record<string, unknown>, isDark: boolean) {
   return (
     <section className="focus-chart-card">
       <div className="focus-chart-header">
         <p className="panel-kicker">{title}</p>
         <h4>{subtitle}</h4>
       </div>
-      <ReactECharts option={withChartTheme(option)} style={{ height: 240 }} />
+      <ReactECharts option={withChartTheme(option, isDark)} style={{ height: 240 }} />
     </section>
   );
 }
@@ -103,6 +104,7 @@ export function DetailDrawer({
   filters,
   onClose,
 }: DetailDrawerProps) {
+  const isDark = useDarkMode();
   const [activeTab, setActiveTab] = useState<FocusTab>('overview');
   const trendGranularity: TrendGranularity =
     filters.periodMode === 'month' ? 'day' : 'month';
@@ -247,7 +249,7 @@ export function DetailDrawer({
 
       const hoursTrendOption = {
         tooltip: { trigger: 'axis' },
-        grid: { left: 24, right: 18, top: 24, bottom: 20, containLabel: true },
+        grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'category', data: trendLabels },
         yAxis: { type: 'value' },
         series: [
@@ -263,7 +265,7 @@ export function DetailDrawer({
       const projectStackOption = {
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         legend: { top: 0 },
-        grid: { left: 24, right: 18, top: 50, bottom: 20, containLabel: true },
+        grid: { left: 24, right: 18, top: 50, bottom: 40, containLabel: true },
         xAxis: { type: 'category', data: trendLabels },
         yAxis: { type: 'value' },
         series: projectNames.map((projectName, index) => ({
@@ -280,7 +282,7 @@ export function DetailDrawer({
 
       const topicBarOption = {
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: 24, right: 18, top: 24, bottom: 20, containLabel: true },
+        grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'value' },
         yAxis: { type: 'category', data: topicNames },
         series: [
@@ -320,7 +322,7 @@ export function DetailDrawer({
           },
         },
         legend: { top: 0 },
-        grid: { left: 24, right: 18, top: 50, bottom: 20, containLabel: true },
+        grid: { left: 24, right: 18, top: 50, bottom: 40, containLabel: true },
         xAxis: { type: 'category', data: trendLabels },
         yAxis: { type: 'value', max: 100, axisLabel: { formatter: '{value}%' } },
         series: projectEvolutionSeries.map((series, index) => ({
@@ -360,7 +362,7 @@ export function DetailDrawer({
           },
         },
         legend: { top: 0 },
-        grid: { left: 24, right: 18, top: 50, bottom: 20, containLabel: true },
+        grid: { left: 24, right: 18, top: 50, bottom: 40, containLabel: true },
         xAxis: { type: 'category', data: trendLabels },
         yAxis: { type: 'value', max: 100, axisLabel: { formatter: '{value}%' } },
         series: groupedTopicSeries.map((series, index) => ({
@@ -402,19 +404,21 @@ export function DetailDrawer({
               : '投入相对集中，可直接看趋势变化。'}
           </p>
           <div className="focus-chart-grid">
-            {chartShell('工时趋势', '按日期观察个人投入变化', hoursTrendOption)}
-            {chartShell('项目构成', '该员工在不同项目上的工时分布', projectStackOption)}
+            {chartShell('工时趋势', '按日期观察个人投入变化', hoursTrendOption, isDark)}
+            {chartShell('项目构成', '该员工在不同项目上的工时分布', projectStackOption, isDark)}
             {chartShell(
               '项目参与演进',
               trendGranularity === 'day' ? '按天看参与项目占比变化' : '按月看参与项目占比变化',
               projectEvolutionOption,
+              isDark,
             )}
             {chartShell(
               '任务类型演进',
               trendGranularity === 'day' ? '按天看任务类型占比变化' : '按月看任务类型占比变化',
               topicEvolutionOption,
+              isDark,
             )}
-            {chartShell('任务主题', '当前主要工作类型构成', topicBarOption)}
+            {chartShell('任务主题', '当前主要工作类型构成', topicBarOption, isDark)}
           </div>
         </>
       );
@@ -546,7 +550,7 @@ export function DetailDrawer({
 
       const trendOption = {
         tooltip: { trigger: 'axis' },
-        grid: { left: 24, right: 18, top: 24, bottom: 20, containLabel: true },
+        grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'category', data: trendLabels },
         yAxis: { type: 'value' },
         series: [
@@ -579,7 +583,7 @@ export function DetailDrawer({
           },
         },
         legend: { top: 0 },
-        grid: { left: 24, right: 18, top: 50, bottom: 20, containLabel: true },
+        grid: { left: 24, right: 18, top: 50, bottom: 40, containLabel: true },
         xAxis: { type: 'category', data: trendLabels },
         yAxis: {
           type: 'value',
@@ -627,7 +631,7 @@ export function DetailDrawer({
           },
         },
         legend: { top: 0 },
-        grid: { left: 24, right: 18, top: 50, bottom: 20, containLabel: true },
+        grid: { left: 24, right: 18, top: 50, bottom: 40, containLabel: true },
         xAxis: { type: 'category', data: trendLabels },
         yAxis: {
           type: 'value',
@@ -657,7 +661,7 @@ export function DetailDrawer({
 
       const participantBarOption = {
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: 24, right: 18, top: 24, bottom: 20, containLabel: true },
+        grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'value' },
         yAxis: { type: 'category', data: participants.map((item) => item.name) },
         series: [
@@ -671,7 +675,7 @@ export function DetailDrawer({
 
       const topicBarOption = {
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: 24, right: 18, top: 24, bottom: 20, containLabel: true },
+        grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'value' },
         yAxis: { type: 'category', data: topicNames },
         series: [
@@ -715,19 +719,21 @@ export function DetailDrawer({
               : '当前参与面与人均投入基本匹配。'}
           </p>
           <div className="focus-chart-grid">
-            {chartShell('项目趋势', '按日期观察项目投入变化', trendOption)}
-            {chartShell('人员构成', '项目内各成员投入分布', participantBarOption)}
+            {chartShell('项目趋势', '按日期观察项目投入变化', trendOption, isDark)}
+            {chartShell('人员构成', '项目内各成员投入分布', participantBarOption, isDark)}
             {chartShell(
               '任务类型演进',
               trendGranularity === 'day' ? '按天看任务类型占比变化' : '按月看任务类型占比变化',
               topicEvolutionOption,
+              isDark,
             )}
             {chartShell(
               '阶段演进',
               trendGranularity === 'day' ? '按天看项目所处阶段变化' : '按月看项目所处阶段变化',
               stageEvolutionOption,
+              isDark,
             )}
-            {chartShell('任务主题', '项目当前主要工作类型', topicBarOption)}
+            {chartShell('任务主题', '项目当前主要工作类型', topicBarOption, isDark)}
           </div>
         </>
       );
@@ -787,7 +793,7 @@ export function DetailDrawer({
 
       const employeeBarOption = {
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: 24, right: 18, top: 24, bottom: 20, containLabel: true },
+        grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'value' },
         yAxis: {
           type: 'category',
@@ -806,7 +812,7 @@ export function DetailDrawer({
 
       const projectBarOption = {
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: 24, right: 18, top: 24, bottom: 20, containLabel: true },
+        grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'value' },
         yAxis: { type: 'category', data: projectNames },
         series: [
@@ -855,9 +861,9 @@ export function DetailDrawer({
           </div>
           <p className="focus-brief">这个日期视角适合识别异常高负载、多人切换和项目投入是否过于集中。</p>
           <div className="focus-chart-grid">
-            {chartShell('员工负载', '当天每位成员投入情况', employeeBarOption)}
-            {chartShell('项目分布', '当天工时流向了哪些项目', projectBarOption)}
-            {chartShell('主题构成', '当天任务类型占比', topicPieOption)}
+            {chartShell('员工负载', '当天每位成员投入情况', employeeBarOption, isDark)}
+            {chartShell('项目分布', '当天工时流向了哪些项目', projectBarOption, isDark)}
+            {chartShell('主题构成', '当天任务类型占比', topicPieOption, isDark)}
           </div>
         </>
       );
@@ -960,20 +966,44 @@ export function DetailDrawer({
             当前可结合关联任务判断它是独立事项还是更大工作流的一部分。
           </p>
           <div className="focus-chart-grid">
-            {chartShell('项目趋势', '该任务所在项目的近期投入', {
-              tooltip: { trigger: 'axis' },
-              grid: { left: 24, right: 18, top: 24, bottom: 20, containLabel: true },
-              xAxis: { type: 'category', data: globalTrendLabels },
-              yAxis: { type: 'value' },
-              series: [{ type: 'line', smooth: true, color: '#2a9d8f', data: fillGroupedSeries(globalTrendLabels, projectTrend).map((item) => item.value) }],
-            })}
-            {chartShell('个人趋势', '责任人的近期任务投入', {
-              tooltip: { trigger: 'axis' },
-              grid: { left: 24, right: 18, top: 24, bottom: 20, containLabel: true },
-              xAxis: { type: 'category', data: globalTrendLabels },
-              yAxis: { type: 'value' },
-              series: [{ type: 'line', smooth: true, color: '#0a84ff', data: fillGroupedSeries(globalTrendLabels, employeeTrend).map((item) => item.value) }],
-            })}
+            {chartShell(
+              '项目趋势',
+              '该任务所在项目的近期投入',
+              {
+                tooltip: { trigger: 'axis' },
+                grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
+                xAxis: { type: 'category', data: globalTrendLabels },
+                yAxis: { type: 'value' },
+                series: [
+                  {
+                    type: 'line',
+                    smooth: true,
+                    color: '#2a9d8f',
+                    data: fillGroupedSeries(globalTrendLabels, projectTrend).map((item) => item.value),
+                  },
+                ],
+              },
+              isDark,
+            )}
+            {chartShell(
+              '个人趋势',
+              '责任人的近期任务投入',
+              {
+                tooltip: { trigger: 'axis' },
+                grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
+                xAxis: { type: 'category', data: globalTrendLabels },
+                yAxis: { type: 'value' },
+                series: [
+                  {
+                    type: 'line',
+                    smooth: true,
+                    color: '#0a84ff',
+                    data: fillGroupedSeries(globalTrendLabels, employeeTrend).map((item) => item.value),
+                  },
+                ],
+              },
+              isDark,
+            )}
           </div>
         </>
       );
@@ -1058,10 +1088,10 @@ export function DetailDrawer({
         >
           <motion.aside
             className="detail-drawer"
-            initial={{ y: 24, opacity: 0, scale: 0.98 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 24, opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.24 }}
+            initial={{ x: '100%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: '100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
           >
             <div className="detail-header">
               <div className="detail-header-spacer" />

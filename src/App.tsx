@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { AgentPage } from './pages/AgentPage';
 import { DetailDrawer } from './components/DetailDrawer';
@@ -14,8 +14,22 @@ import { SettingsPage } from './pages/SettingsPage';
 import { TasksPage } from './pages/TasksPage';
 import { MethodsPage } from './pages/MethodsPage';
 import { useAppStore } from './store/appStore';
+import { ToastContainer } from './components/ToastContainer';
+
+import { useThemeStore } from './store/themeStore';
 
 export default function App() {
+  const { theme } = useThemeStore();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'system') {
+      root.removeAttribute('data-theme');
+    } else {
+      root.setAttribute('data-theme', theme);
+    }
+  }, [theme]);
+
   const {
     activePage,
     closeDetail,
@@ -81,7 +95,7 @@ export default function App() {
           />
         );
     }
-  }, [activePage, dataset, filters, openDetail, view]);
+  }, [activePage, dataset, filters, openDetail, view, replaceSource, patchFilters, setActivePage]);
 
   return (
     <div className="app-shell">
@@ -112,6 +126,7 @@ export default function App() {
         filters={filters}
         onClose={closeDetail}
       />
+      <ToastContainer />
     </div>
   );
 }

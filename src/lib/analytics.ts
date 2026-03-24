@@ -17,6 +17,7 @@ import type {
   Task,
   TopicStat,
 } from '../types';
+import { formatNumber, formatPercent } from './format';
 
 function dateInRange(date: string, startDate: string, endDate: string) {
   return date >= startDate && date <= endDate;
@@ -357,17 +358,17 @@ function buildReportBlocks(
   const blocks: ReportBlock[] = [
     {
       title: '管理层摘要',
-      body: `当前筛选范围内共计 ${globalMetrics.totalHours.toFixed(1)} 小时，覆盖 ${globalMetrics.activeEmployees} 名活跃员工与 ${globalMetrics.projectCount} 个项目。样本仅 ${globalMetrics.sampleDays} 天，应以结构和波动观察为主。`,
+      body: `当前筛选范围内共计 ${formatNumber(globalMetrics.totalHours)} 小时，覆盖 ${globalMetrics.activeEmployees} 名活跃员工与 ${globalMetrics.projectCount} 个项目。样本仅 ${globalMetrics.sampleDays} 天，应以结构和波动观察为主。`,
     },
     {
       title: '重点项目',
       body: topProject
-        ? `${topProject.projectName} 当前累计 ${topProject.totalHours.toFixed(1)} 小时，涉及 ${topProject.participantCount} 人，主导主题为 ${topProject.primaryTopic}。`
+        ? `${topProject.projectName} 当前累计 ${formatNumber(topProject.totalHours)} 小时，涉及 ${topProject.participantCount} 人，主导主题为 ${topProject.primaryTopic}。`
         : '当前筛选范围内没有可展示的项目。',
     },
     {
       title: '异常员工日',
-      body: `异常员工日占比 ${(globalMetrics.anomalyDayRate * 100).toFixed(1)}%，建议重点关注高工时叠加高碎片的工作日，以及同时跨多个项目的排班。`,
+      body: `异常员工日占比 ${formatPercent(globalMetrics.anomalyDayRate)}，建议重点关注高工时叠加高碎片的工作日，以及同时跨多个项目的排班。`,
     },
     {
       title: '数据质量限制',
@@ -384,7 +385,7 @@ function buildReportBlocks(
   ];
 
   if (highestSwitch) {
-    blocks[2].body += ` 当前切换率最高的是 ${highestSwitch.name}，多项目日占比 ${(highestSwitch.multiProjectRate * 100).toFixed(1)}%。`;
+    blocks[2].body += ` 当前切换率最高的是 ${highestSwitch.name}，多项目日占比 ${formatPercent(highestSwitch.multiProjectRate)}。`;
   }
 
   if (dataset.notes.length) {
@@ -434,7 +435,7 @@ function buildAgentReport(
 
     if (employee.totalHours > avgHours * 1.18) {
       evidence.push(
-        `总工时 ${employee.totalHours.toFixed(1)}h，高于当前筛选人均 ${avgHours.toFixed(1)}h。`,
+        `总工时 ${formatNumber(employee.totalHours)}h，高于当前筛选人均 ${formatNumber(avgHours)}h。`,
       );
       advice.push('核查是否存在关键人过载，必要时拆分需求或安排结对支援。');
       score += 2;
@@ -442,7 +443,7 @@ function buildAgentReport(
 
     if (employee.multiProjectRate >= 0.34) {
       evidence.push(
-        `多项目切换率 ${(employee.multiProjectRate * 100).toFixed(1)}%，存在上下文切换损耗。`,
+        `多项目切换率 ${formatPercent(employee.multiProjectRate)}，存在上下文切换损耗。`,
       );
       advice.push('优先减少同一周内并行项目数量，尽量按项目块分配。');
       score += 2;
@@ -450,7 +451,7 @@ function buildAgentReport(
 
     if (employee.focusScore <= 0.58 && employee.projectCount >= 3) {
       evidence.push(
-        `工时集中度 ${(employee.focusScore * 100).toFixed(1)}%，项目分散到 ${employee.projectCount} 个方向。`,
+        `工时集中度 ${formatPercent(employee.focusScore)}，项目分散到 ${employee.projectCount} 个方向。`,
       );
       advice.push('为该成员设定主项目，次要事项通过固定时段集中处理。');
       score += 1;
@@ -467,7 +468,7 @@ function buildAgentReport(
       const avgDepth = ai.depthScore / ai.recordCount;
       if (avgDepth < 64 && ai.callCount >= 18) {
         evidence.push(
-          `AI 调用较频繁（${ai.callCount} 次），但平均深度仅 ${avgDepth.toFixed(1)}，提示可能存在浅层反复提问。`,
+          `AI 调用较频繁（${ai.callCount} 次），但平均深度仅 ${formatNumber(avgDepth)}，提示可能存在浅层反复提问。`,
         );
         advice.push('针对该成员补充提示词结构化训练，减少低质量多轮试错。');
         score += 1;
@@ -498,14 +499,14 @@ function buildAgentReport(
 
     if (project.participantCount >= 4 && project.averageHoursPerPerson <= 8) {
       evidence.push(
-        `参与人数 ${project.participantCount} 较多，但人均投入仅 ${project.averageHoursPerPerson.toFixed(1)}h。`,
+        `参与人数 ${project.participantCount} 较多，但人均投入仅 ${formatNumber(project.averageHoursPerPerson)}h。`,
       );
       advice.push('检查是否存在多人浅介入导致协作成本抬升，应收敛角色边界。');
       score += 1;
     }
 
     if (project.trendSlope >= 2.2) {
-      evidence.push(`工时趋势斜率 ${project.trendSlope.toFixed(2)}，近期投入抬升明显。`);
+      evidence.push(`工时趋势斜率 ${formatNumber(project.trendSlope)}，近期投入抬升明显。`);
       advice.push('结合里程碑或风险点确认是正常冲刺还是返工前兆。');
       score += 2;
     }
@@ -524,7 +525,7 @@ function buildAgentReport(
     if (feedbackRows.length) {
       const avgScore = average(feedbackRows.map((item) => item.score));
       if (avgScore < 4) {
-        evidence.push(`反馈 mock 平均评分 ${avgScore.toFixed(2)}，需关注投入与用户结果错位。`);
+        evidence.push(`反馈 mock 平均评分 ${formatNumber(avgScore)}，需关注投入与用户结果错位。`);
         advice.push('优先把工时投向稳定性和体验问题，而不是继续摊薄在低优先事项。');
         score += 1;
       }
@@ -613,7 +614,7 @@ function buildAgentReport(
   const llmPrompt = [
     '你是软件研发效能分析助手，请根据以下结构化信息输出异常报告和优化建议。',
     `样本范围：${filters.startDate} 到 ${filters.endDate}。`,
-    `全局指标：总工时 ${globalMetrics.totalHours.toFixed(1)}，活跃员工 ${globalMetrics.activeEmployees}，异常员工日占比 ${(globalMetrics.anomalyDayRate * 100).toFixed(1)}%。`,
+    `全局指标：总工时 ${formatNumber(globalMetrics.totalHours)}，活跃员工 ${globalMetrics.activeEmployees}，异常员工日占比 ${formatPercent(globalMetrics.anomalyDayRate)}。`,
     `主要异常：${issues
       .slice(0, 5)
       .map((issue) => `${issue.subject} - ${issue.summary}`)

@@ -73,9 +73,9 @@ export function CorrelationPage({
   const tasksCorrelation = getCorrelationValue(view.correlations, '工时', '任务数');
   const projectsCorrelation = getCorrelationValue(view.correlations, '工时', '项目数');
   const topPairSummary = strongestPair
-    ? `${strongestPair.x}与${strongestPair.y}呈${correlationStrengthLabel(strongestPair.value)}${
+      ? `${strongestPair.x}与${strongestPair.y}呈${correlationStrengthLabel(strongestPair.value)}${
         strongestPair.value >= 0 ? '正' : '负'
-      }相关（r=${formatNumber(strongestPair.value, 2)}）`
+      }相关（r=${formatNumber(strongestPair.value, 1)}）`
     : '当前样本不足以形成稳定的候选关系';
 
   const loadDriverSummary =
@@ -93,7 +93,7 @@ export function CorrelationPage({
   const heatmapOption = {
     tooltip: {
       formatter: (params: { value: [number, number, number] }) =>
-        `${labels[params.value[0]]} / ${labels[params.value[1]]}<br/>相关系数 r = ${params.value[2].toFixed(2)}`,
+        `${labels[params.value[0]]} / ${labels[params.value[1]]}<br/>相关系数 r = ${formatNumber(params.value[2], 1)}`,
     },
     grid: { left: 76, right: 28, top: 16, bottom: 56 },
     xAxis: { type: 'category', data: labels },
@@ -113,13 +113,14 @@ export function CorrelationPage({
         data: view.correlations.map((item) => [
           labels.indexOf(item.x),
           labels.indexOf(item.y),
-          Number(item.value.toFixed(2)),
+          Number(item.value.toFixed(1)),
         ]),
         label: {
           show: true,
           color: '#1d1d1f',
           fontSize: 11,
-          formatter: ({ value }: { value: [number, number, number] }) => value[2].toFixed(2),
+          formatter: ({ value }: { value: [number, number, number] }) =>
+            formatNumber(value[2], 1),
         },
       },
     ],
@@ -131,10 +132,10 @@ export function CorrelationPage({
       axisPointer: { type: 'shadow' },
       formatter: (params: Array<{ name: string; value: number }>) => {
         const item = params[0];
-        return `${item.name}<br/>相关系数 r = ${item.value.toFixed(2)}<br/>说明：当前只代表同步变化，不代表因果`;
+        return `${item.name}<br/>相关系数 r = ${formatNumber(item.value, 1)}<br/>说明：当前只代表同步变化，不代表因果`;
       },
     },
-    grid: { left: 112, right: 24, top: 12, bottom: 24 },
+    grid: { left: 112, right: 24, top: 12, bottom: 40 },
     xAxis: {
       type: 'value',
       min: -1,
@@ -151,7 +152,7 @@ export function CorrelationPage({
       {
         type: 'bar',
         data: topPairs.map((item) => ({
-          value: Number(item.value.toFixed(2)),
+          value: Number(item.value.toFixed(1)),
           itemStyle: {
             color: item.value >= 0 ? '#0071e3' : '#ff9f0a',
             borderRadius: 10,
@@ -172,7 +173,7 @@ export function CorrelationPage({
         const [hours, taskCount, projectCount] = params.value;
         return [
           `${params.data.employeeName} · ${params.data.date}`,
-          `单日工时：${hours.toFixed(1)}h`,
+          `单日工时：${formatNumber(hours)}h`,
           `单日任务数：${taskCount}`,
           `涉及项目数：${projectCount}`,
         ].join('<br/>');
@@ -208,11 +209,11 @@ export function CorrelationPage({
       formatter: (params: { name: string; data: number[] }) =>
         [
           params.name,
-          `最小值：${params.data[0].toFixed(1)}h`,
-          `Q1：${params.data[1].toFixed(1)}h`,
-          `中位数：${params.data[2].toFixed(1)}h`,
-          `Q3：${params.data[3].toFixed(1)}h`,
-          `最大值：${params.data[4].toFixed(1)}h`,
+          `最小值：${formatNumber(params.data[0])}h`,
+          `Q1：${formatNumber(params.data[1])}h`,
+          `中位数：${formatNumber(params.data[2])}h`,
+          `Q3：${formatNumber(params.data[3])}h`,
+          `最大值：${formatNumber(params.data[4])}h`,
         ].join('<br/>'),
     },
     grid: { left: 56, right: 20, top: 24, bottom: 40 },

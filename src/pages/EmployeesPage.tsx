@@ -42,6 +42,38 @@ function quantile(values: number[], ratio: number) {
   return sorted[lower] * (1 - weight) + sorted[upper] * weight;
 }
 
+function buildBoxplotStats(values: number[]) {
+  if (!values.length) {
+    return {
+      min: 0,
+      q1: 0,
+      median: 0,
+      q3: 0,
+      max: 0,
+      outliers: [] as number[],
+    };
+  }
+
+  const sorted = [...values].sort((left, right) => left - right);
+  const q1 = quantile(sorted, 0.25);
+  const median = quantile(sorted, 0.5);
+  const q3 = quantile(sorted, 0.75);
+  const iqr = q3 - q1;
+  const lowerFence = q1 - iqr * 1.5;
+  const upperFence = q3 + iqr * 1.5;
+  const inRange = sorted.filter((value) => value >= lowerFence && value <= upperFence);
+  const outliers = sorted.filter((value) => value < lowerFence || value > upperFence);
+
+  return {
+    min: inRange[0] ?? sorted[0],
+    q1,
+    median,
+    q3,
+    max: inRange[inRange.length - 1] ?? sorted[sorted.length - 1],
+    outliers,
+  };
+}
+
 export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
   const topRiskEmployees = [...view.employeeStats]
     .sort((left, right) => employeeRiskScore(right) - employeeRiskScore(left))
@@ -127,7 +159,7 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
 
   const hoursBarOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: 24, right: 20, top: 24, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'value' },
     yAxis: { type: 'category', data: topHoursEmployees.map((item) => item.name) },
     series: [
@@ -141,7 +173,7 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
 
   const focusBarOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: 24, right: 20, top: 24, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'value', max: 100 },
     yAxis: { type: 'category', data: focusedEmployees.map((item) => item.name) },
     series: [
@@ -156,7 +188,7 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
   const workTypeOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: { top: 0 },
-    grid: { left: 24, right: 20, top: 48, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 48, bottom: 40, containLabel: true },
     xAxis: { type: 'value', max: 100 },
     yAxis: { type: 'category', data: topRiskEmployees.map((item) => item.name) },
     series: ['开发', '维护', '现场支持', '会议'].map((topic, index) => ({
@@ -182,7 +214,7 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
   const monthlyHoursOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: { top: 0 },
-    grid: { left: 24, right: 20, top: 48, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 48, bottom: 40, containLabel: true },
     xAxis: { type: 'category', data: monthLabels },
     yAxis: { type: 'value', name: '工时' },
     series: topMonthlyEmployees.map((employee, index) => ({
@@ -283,31 +315,55 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
   };
 
   const boxplotEmployees = [...view.employeeStats].slice(0, 10);
-  const boxplotValues = boxplotEmployees.map((employee) => {
+  const boxplotStats = boxplotEmployees.map((employee) => {
     const values = view.employeeDays
       .filter((day) => day.employeeId === employee.employeeId)
       .map((day) => day.reportHour);
-    const sorted = [...values].sort((left, right) => left - right);
-    return [
-      sorted[0] ?? 0,
-      quantile(sorted, 0.25),
-      quantile(sorted, 0.5),
-      quantile(sorted, 0.75),
-      sorted[sorted.length - 1] ?? 0,
-    ];
+    return buildBoxplotStats(values);
   });
+  const boxplotValues = boxplotStats.map((item) => [
+    item.min,
+    item.q1,
+    item.median,
+    item.q3,
+    item.max,
+  ]);
+  const boxplotOutliers = boxplotStats.flatMap((item, employeeIndex) =>
+    item.outliers.map((value) => [employeeIndex, value]),
+  );
   const boxplotOption = {
     tooltip: {
       trigger: 'item',
-      formatter: (params: { name?: string; data?: number[] }) => {
+      formatter: (params: {
+        componentSubType?: string;
+        name?: string;
+        data?: number[];
+        value?: number[];
+        seriesName?: string;
+        dataIndex?: number;
+      }) => {
+        if (params.componentSubType === 'scatter') {
+          const value = params.value ?? [];
+          const employee = boxplotEmployees[Number(value[0] ?? 0)];
+          return [
+            `<strong>${employee?.name ?? String(params.name ?? '')}</strong>`,
+            `离群日工时：${formatNumber(Number(value[1] ?? 0))} h`,
+            '说明：该值落在 1.5 IQR 之外，代表极端工作日。',
+          ].join('<br/>');
+        }
+
         const data = params.data ?? [];
+        const employee = boxplotEmployees[params.dataIndex ?? -1];
+        const stats = boxplotStats[params.dataIndex ?? -1];
         return [
-          `<strong>${String(params.name ?? '')}</strong>`,
-          `最低：${formatNumber(Number(data[0] ?? 0))} h`,
+          `<strong>${employee?.name ?? String(params.name ?? '')}</strong>`,
+          `样本天数：${view.employeeDays.filter((day) => day.employeeId === employee?.employeeId).length}`,
+          `须线最低：${formatNumber(Number(data[0] ?? 0))} h`,
           `Q1：${formatNumber(Number(data[1] ?? 0))} h`,
           `中位数：${formatNumber(Number(data[2] ?? 0))} h`,
           `Q3：${formatNumber(Number(data[3] ?? 0))} h`,
-          `最高：${formatNumber(Number(data[4] ?? 0))} h`,
+          `须线最高：${formatNumber(Number(data[4] ?? 0))} h`,
+          `离群点：${stats?.outliers.length ?? 0} 个`,
         ].join('<br/>');
       },
     },
@@ -315,7 +371,7 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
     xAxis: {
       type: 'category',
       data: boxplotEmployees.map((item) => item.name),
-      axisLabel: { rotate: 20 },
+      axisLabel: { rotate: 30 }, // 增加旋转系数
     },
     yAxis: { type: 'value', name: '日工时' },
     series: [
@@ -323,6 +379,13 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
         type: 'boxplot',
         data: boxplotValues,
         itemStyle: { color: '#93c5fd', borderColor: '#2563eb' },
+      },
+      {
+        name: '离群点',
+        type: 'scatter',
+        data: boxplotOutliers,
+        itemStyle: { color: '#ef4444' },
+        symbolSize: 10,
       },
     ],
   };
@@ -362,7 +425,7 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
     xAxis: {
       type: 'category',
       data: topHeatmapProjects,
-      axisLabel: { rotate: 20 },
+      axisLabel: { rotate: 30 }, // 增加旋转系数
     },
     yAxis: {
       type: 'category',
@@ -408,7 +471,7 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
         ].join('<br/>');
       },
     },
-    grid: { left: 24, right: 20, top: 24, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'value', name: '救火指数' },
     yAxis: { type: 'category', data: topFireEmployees.map((item) => item.name) },
     series: [
@@ -599,10 +662,10 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
       <ChartPanel
         title="员工工时箱线图"
         subtitle="看团队内谁的日工时波动更大"
-        note="箱线图适合看稳定性：箱体越高，说明该员工日工时波动越大。"
+        note="箱体表示常见波动范围，须线按 1.5 IQR 计算，极端工作日会单独显示为红色离群点。"
         option={boxplotOption}
         source="derived"
-        method="按员工统计日工时分布的最小值、四分位数和最大值"
+        method="按员工统计日工时分布的四分位数、1.5 IQR 须线与离群点"
         reliability="中高"
         caution="样本少的员工箱线图会更不稳定"
       />

@@ -1,5 +1,6 @@
 import { Panel } from '../components/Panel';
 import { MetaPill } from '../components/MetaPill';
+import { formatNumber, formatPercent } from '../lib/format';
 import type { AnalyticsView } from '../types';
 
 interface MethodsPageProps {
@@ -110,12 +111,12 @@ export function MethodsPage({ view }: MethodsPageProps) {
         <ul className="report-list">
           <li>
             {topProject
-              ? `“${topProject.projectName} 的趋势斜率为 ${topProject.trendSlope.toFixed(2)}，提示近期投入呈上升态势，建议结合里程碑或返工信号进一步复核。”`
+              ? `“${topProject.projectName} 的趋势斜率为 ${formatNumber(topProject.trendSlope)}，提示近期投入呈上升态势，建议结合里程碑或返工信号进一步复核。”`
               : '“某项目趋势斜率上升，提示近期投入抬升，需要结合里程碑判断是否正常。”'}
           </li>
           <li>
             {topSwitcher
-              ? `“${topSwitcher.name} 的多项目率为 ${(topSwitcher.multiProjectRate * 100).toFixed(1)}%，提示存在较高上下文切换风险，建议复核任务排班。”`
+              ? `“${topSwitcher.name} 的多项目率为 ${formatPercent(topSwitcher.multiProjectRate)}，提示存在较高上下文切换风险，建议复核任务排班。”`
               : '“某成员多项目率偏高，提示存在上下文切换损耗风险。”'}
           </li>
           <li>“某项目参与人数高但人均投入低，提示可能存在多人浅介入，需要澄清角色边界。”</li>

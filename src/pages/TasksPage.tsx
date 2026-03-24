@@ -43,7 +43,7 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
 
   const topicOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: 24, right: 20, top: 24, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'value' },
     yAxis: { type: 'category', data: view.topicStats.map((item) => item.topicLabel) },
     series: [
@@ -131,7 +131,7 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
 
   const keywordOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: 24, right: 20, top: 24, bottom: 24, containLabel: true },
+    grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'category', data: keywordEntries.map(([keyword]) => keyword) },
     yAxis: { type: 'value' },
     series: [
