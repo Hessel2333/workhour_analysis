@@ -1,0 +1,2210 @@
+{
+    "id": "TaskHourJsonRpcApi.EmployeeHours",
+    "jsonrpc": "2.0",
+    "result": [
+        {
+            "Avatar": "upload/2024-12-07/c0cab353-b45f-11ef-aae0-2a04a009043e-Snipaste_2024-07-02_14-50-33.png",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 9,
+                    "TaskList": [
+                        {
+                            "Id": "411569136280801280",
+                            "Name": "bug修改，后端修改，手机自适应修改+维护数据",
+                            "ProjectName": "优姿康网站与公众号",
+                            "ReportDay": 1,
+                            "ReportHour": 9,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411569331011850240",
+                            "Name": "bug修改，后端修改，手机自适应修改+维护数据",
+                            "ProjectName": "优姿康网站与公众号",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411569376515854336",
+                            "Name": "bug修改，后端修改，手机自适应修改+维护数据",
+                            "ProjectName": "优姿康网站与公众号",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411569407476109312",
+                            "Name": "bug修改，后端修改，手机自适应修改+维护数据",
+                            "ProjectName": "优姿康网站与公众号",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411569541563813888",
+                            "Name": "部署陪标项目",
+                            "ProjectName": "全域文旅管控平台",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 0.53,
+                    "ReportHour": 4,
+                    "TaskList": [
+                        {
+                            "Id": "411617045762281472",
+                            "Name": "部署陪标项目",
+                            "ProjectName": "全域文旅管控平台",
+                            "ReportDay": 0.53,
+                            "ReportHour": 4,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "290171361239240704",
+            "Name": "黄清月"
+        },
+        {
+            "Avatar": "upload/2024-09-27/55640de3-7ca5-11ef-b000-2a04a009043e-ldp.jpg",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411619323827195904",
+                            "Name": "全局 打击 所队模块接口对接",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411619442593107968",
+                            "Name": "全局 打击 所队模块接口对接",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411619564114677760",
+                            "Name": "全局 打击 所队模块接口对接",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411620167956041728",
+                            "Name": "全局 打击 所队模块接口对接",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411620250650939392",
+                            "Name": "全局 打击 所队模块接口对接",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 1,
+                    "ReportHour": 3,
+                    "TaskList": [
+                        {
+                            "Id": "411620383079796736",
+                            "Name": "全局 打击 所队模块接口对接",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 1,
+                            "ReportHour": 3,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "306657952403034112",
+            "Name": "金贇杰"
+        },
+        {
+            "Avatar": "upload/2025-06-28/高达-23370a4d-53ca-11f0-9cbb-2a04a009043e.jpeg",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 10,
+                    "TaskList": [
+                        {
+                            "Id": "411625429758644224",
+                            "Name": "开发、测试",
+                            "ProjectName": "崽在",
+                            "ReportDay": 1,
+                            "ReportHour": 10,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 9,
+                    "TaskList": [
+                        {
+                            "Id": "411625429798490112",
+                            "Name": "开发、测试",
+                            "ProjectName": "崽在",
+                            "ReportDay": 0.6,
+                            "ReportHour": 5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411625429834141696",
+                            "Name": "需求整理、测试联调",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 0.4,
+                            "ReportHour": 4,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 9,
+                    "TaskList": [
+                        {
+                            "Id": "411625429863501824",
+                            "Name": "开发、测试",
+                            "ProjectName": "崽在",
+                            "ReportDay": 1,
+                            "ReportHour": 9,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 10,
+                    "TaskList": [
+                        {
+                            "Id": "411625429903347712",
+                            "Name": "开发、测试",
+                            "ProjectName": "崽在",
+                            "ReportDay": 0.7,
+                            "ReportHour": 7,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411625429943193600",
+                            "Name": "ollama_web客户端实现",
+                            "ProjectName": "HJQB导调",
+                            "ReportDay": 0.3,
+                            "ReportHour": 3,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 10,
+                    "TaskList": [
+                        {
+                            "Id": "411625429978845184",
+                            "Name": "开发、测试",
+                            "ProjectName": "崽在",
+                            "ReportDay": 0.4,
+                            "ReportHour": 6,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411625430010302464",
+                            "Name": "ollama_web客户端实现",
+                            "ProjectName": "HJQB导调",
+                            "ReportDay": 0.3,
+                            "ReportHour": 2,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411625430045954048",
+                            "Name": "需求整理、测试联调",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 0.3,
+                            "ReportHour": 2,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 0.5,
+                    "ReportHour": 4,
+                    "TaskList": [
+                        {
+                            "Id": "411625430085799936",
+                            "Name": "需求整理、测试联调",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 0.5,
+                            "ReportHour": 4,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "250151225801576448",
+            "Name": "郭顺顺"
+        },
+        {
+            "Avatar": "upload/2023-09-16/c650b0bb-5465-11ee-8cef-2a074c040401-3e425f4dada30e533d9a7a074a56a4d2.jpg",
+            "DetailList": null,
+            "Id": "10",
+            "Name": "超级管理员"
+        },
+        {
+            "Avatar": "upload/2023-05-19/39331896-f629-11ed-85e5-2a074c040401-头像.png",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411625162961063936",
+                            "Name": "需求功能整理，",
+                            "ProjectName": "奉化招商绩效平台",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411624505589895168",
+                            "Name": "客户使用培训",
+                            "ProjectName": "H仓库",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411624535952461824",
+                            "Name": "客户试用问题沟通",
+                            "ProjectName": "H仓库",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411624812011065344",
+                            "Name": "现场驻点",
+                            "ProjectName": "HJQB导调",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411624881357590528",
+                            "Name": "现场驻点",
+                            "ProjectName": "HJQB导调",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411625427191730176",
+                            "Name": "SM会议+员工大会",
+                            "ProjectName": "公司日常类目",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "223726851286634496",
+            "Name": "胡信凯"
+        },
+        {
+            "Avatar": "upload/2023-10-24/9765663a-724a-11ee-978e-2a074c040401-1303406.jpg",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411614750890790912",
+                            "Name": "修改bug,优化app启动,app上架",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 8.5,
+                    "TaskList": [
+                        {
+                            "Id": "411614778822758400",
+                            "Name": "修改bug,优化app启动,app上架",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 8.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411614816462442496",
+                            "Name": "修改bug,优化app启动,app上架",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411614853368123392",
+                            "Name": "修改bug,对接极光",
+                            "ProjectName": "崽在",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411614879121149952",
+                            "Name": "修改bug,对接极光",
+                            "ProjectName": "崽在",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 0.53,
+                    "ReportHour": 4,
+                    "TaskList": [
+                        {
+                            "Id": "411614916301557760",
+                            "Name": "修改bug,对接极光",
+                            "ProjectName": "崽在",
+                            "ReportDay": 0.53,
+                            "ReportHour": 4,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "223720194584350720",
+            "Name": "章华庆"
+        },
+        {
+            "Avatar": "upload/2025-02-14/d2f1babd-eaab-11ef-872f-2a04a009043e-d3cf4f90336110d0a8040c9158dce0d.jpg",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411622397390098432",
+                            "Name": "需求讨论",
+                            "ProjectName": "HJQB导调",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411622478656835584",
+                            "Name": "整合分析方法",
+                            "ProjectName": "HJQB导调",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411622635907584000",
+                            "Name": "整合分析方法",
+                            "ProjectName": "HJQB导调",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411622659464892416",
+                            "Name": "整合分析方法",
+                            "ProjectName": "HJQB导调",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411622681940070400",
+                            "Name": "整合分析方法",
+                            "ProjectName": "HJQB导调",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 1,
+                    "ReportHour": 4,
+                    "TaskList": [
+                        {
+                            "Id": "411622703326826496",
+                            "Name": "整合分析方法",
+                            "ProjectName": "HJQB导调",
+                            "ReportDay": 1,
+                            "ReportHour": 4,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "223845320720125952",
+            "Name": "祝鑫涛"
+        },
+        {
+            "Avatar": "upload/2023-10-16/715af50f-6bcf-11ee-978e-2a074c040401-WX20231016-105502@2x.png",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 9,
+                    "TaskList": [
+                        {
+                            "Id": "411564969439006720",
+                            "Name": "交易所界面UI设计和对方产品沟通修改设计稿",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 9,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 9,
+                    "TaskList": [
+                        {
+                            "Id": "411564994397212672",
+                            "Name": "交易所界面UI设计和对方产品沟通修改设计稿",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 9,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411565122245890048",
+                            "Name": "AIppt设计",
+                            "ProjectName": "公司日常类目",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 9,
+                    "TaskList": [
+                        {
+                            "Id": "411565011818254336",
+                            "Name": "交易所界面UI设计和对方产品沟通修改设计稿",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 9,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 0.4,
+                    "ReportHour": 3,
+                    "TaskList": [
+                        {
+                            "Id": "411618601555464192",
+                            "Name": "交易所界面UI设计和对方产品沟通修改设计稿",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.4,
+                            "ReportHour": 3,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "223845007669858304",
+            "Name": "王炫凯"
+        },
+        {
+            "Avatar": "upload/2023-10-14/f50a235b-6a52-11ee-978e-2a074c040401-th2.jpg",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "410731248536260608",
+                            "Name": "搭建web页面",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "410902077410643968",
+                            "Name": "搭建web页面",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.8,
+                            "ReportHour": 6,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "410902229527564288",
+                            "Name": "日常维护",
+                            "ProjectName": "基于AI的数智化底座",
+                            "ReportDay": 0.2,
+                            "ReportHour": 1.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411105217126862848",
+                            "Name": "搭建web页面",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411285992459735040",
+                            "Name": "搭建web页面",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411450626391150592",
+                            "Name": "搭建web页面",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.8,
+                            "ReportHour": 6,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411451556144615424",
+                            "Name": "OpenClaw",
+                            "ProjectName": "学习类项目",
+                            "ReportDay": 0.2,
+                            "ReportHour": 2,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411621838761234432",
+                            "Name": "搭建web页面",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.4,
+                            "ReportHour": 3,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411621898586689536",
+                            "Name": "OpenClaw",
+                            "ProjectName": "学习类项目",
+                            "ReportDay": 0.6,
+                            "ReportHour": 4.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "216066717706096640",
+            "Name": "王斐"
+        },
+        {
+            "Avatar": "upload/2023-05-20/0ad8fb75-f6ac-11ed-85e5-2a074c040401-头像.JPG",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411620634245206016",
+                            "Name": "总部申报材料文件撰写",
+                            "ProjectName": "公司日常类目",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411620400351940608",
+                            "Name": "大屏UI设计",
+                            "ProjectName": "奉化招商绩效平台",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411620442987040768",
+                            "Name": "大屏UI设计",
+                            "ProjectName": "奉化招商绩效平台",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411620480792399872",
+                            "Name": "大屏UI设计",
+                            "ProjectName": "奉化招商绩效平台",
+                            "ReportDay": 0.93,
+                            "ReportHour": 7,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411620671226384384",
+                            "Name": "文件格式修改",
+                            "ProjectName": "北京国家能源集团安环部项目",
+                            "ReportDay": 0.07,
+                            "ReportHour": 0.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411620357951721472",
+                            "Name": "三门任务书撰写",
+                            "ProjectName": "警擎平台",
+                            "ReportDay": 0.87,
+                            "ReportHour": 6.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411620552116539392",
+                            "Name": "大屏UI设计",
+                            "ProjectName": "奉化招商绩效平台",
+                            "ReportDay": 0.13,
+                            "ReportHour": 1,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411620299896262656",
+                            "Name": "总部开月度员工大会",
+                            "ProjectName": "公司日常类目",
+                            "ReportDay": 0.53,
+                            "ReportHour": 4,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411620594212671488",
+                            "Name": "大屏UI设计",
+                            "ProjectName": "奉化招商绩效平台",
+                            "ReportDay": 0.47,
+                            "ReportHour": 3.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "223844677525704704",
+            "Name": "王佳敏"
+        },
+        {
+            "Avatar": "upload/2023-10-24/8a12c68f-724a-11ee-978e-2a074c040401-1318718.png",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411566491986038784",
+                            "Name": "系统测试、系统培训演示、试运行问题的回复及处理、操作手册的问题反馈处理",
+                            "ProjectName": "北京国家能源集团安环部项目",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411566550247018496",
+                            "Name": "系统测试、系统培训演示、试运行问题的回复及处理、操作手册的问题反馈处理",
+                            "ProjectName": "北京国家能源集团安环部项目",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 0.75,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411566949817389056",
+                            "Name": "代理商问题讨论，测试问题讨论及修改",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.15,
+                            "ReportHour": 3,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411567188410372096",
+                            "Name": "服务器选型",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.33,
+                            "ReportHour": 2.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411567336312016896",
+                            "Name": "销售报价改造生成pdf，页面样式及最新逻辑实现",
+                            "ProjectName": "艾比奥管理平台",
+                            "ReportDay": 0.27,
+                            "ReportHour": 2,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411566785513918464",
+                            "Name": "销售报价改造生成pdf，页面样式及最新逻辑实现",
+                            "ProjectName": "艾比奥管理平台",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411566744122429440",
+                            "Name": "销售报价改造生成pdf，页面样式及最新逻辑实现",
+                            "ProjectName": "艾比奥管理平台",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "20",
+            "Name": "潘松"
+        },
+        {
+            "Avatar": "upload/2023-05-20/994f87f4-f6ab-11ed-85e5-2a074c040401-头像.JPG",
+            "DetailList": null,
+            "Id": "223844307365793792",
+            "Name": "潘呈亮"
+        },
+        {
+            "Avatar": "upload/2025-07-12/水蜜桃-1b53c841-5ee4-11f0-9cbb-2a04a009043e.png",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 5,
+                    "TaskList": [
+                        {
+                            "Id": "411624290136887296",
+                            "Name": "刑侦模块数据接口编写",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 1,
+                            "ReportHour": 5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 9,
+                    "TaskList": [
+                        {
+                            "Id": "411624290180927488",
+                            "Name": "刑侦模块数据接口编写",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 1,
+                            "ReportHour": 9,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 8.5,
+                    "TaskList": [
+                        {
+                            "Id": "411624290214481920",
+                            "Name": "刑侦模块数据接口编写",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 1,
+                            "ReportHour": 8.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 10,
+                    "TaskList": [
+                        {
+                            "Id": "411624290252230656",
+                            "Name": "刑侦模块数据接口编写",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 0.74,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411624290352893952",
+                            "Name": "客服话术帮做一个excel导入和模版下载的功能。\n代理商返佣去掉代理员工，并修改现有逻辑",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.26,
+                            "ReportHour": 2,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411624290281590784",
+                            "Name": "刑侦模块数据接口编写",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 1,
+                    "ReportHour": 6,
+                    "TaskList": [
+                        {
+                            "Id": "411624290321436672",
+                            "Name": "刑侦模块数据接口编写",
+                            "ProjectName": "三门县公安局大闭环事项管控平台",
+                            "ReportDay": 0.5,
+                            "ReportHour": 3,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411624290386448384",
+                            "Name": "客服话术帮做一个excel导入和模版下载的功能。\n代理商返佣去掉代理员工，并修改现有逻辑",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.5,
+                            "ReportHour": 3,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "223844000353226752",
+            "Name": "李超杨"
+        },
+        {
+            "Avatar": "",
+            "DetailList": [
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411569537382092800",
+                            "Name": "小程序测试修改",
+                            "ProjectName": "青桐筑家运营管理平台",
+                            "ReportDay": 0.53,
+                            "ReportHour": 4,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411569726222241792",
+                            "Name": "1、openclaw虚拟机安装\n2、仙保二期和朱工对接开发需求",
+                            "ProjectName": "公司日常类目",
+                            "ReportDay": 0.47,
+                            "ReportHour": 4,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411570163606360064",
+                            "Name": "仙霞岭保护区二期整理功能",
+                            "ProjectName": "公司日常类目",
+                            "ReportDay": 0.53,
+                            "ReportHour": 4,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411570699072180224",
+                            "Name": "1、官网修改用户反馈的点差值\n2、联盟升级规则信息内容修改",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.47,
+                            "ReportHour": 4,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411572628164710400",
+                            "Name": "小程序修改充值金额限制并申请发布体验",
+                            "ProjectName": "青桐筑家运营管理平台",
+                            "ReportDay": 0.53,
+                            "ReportHour": 4,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411573026764099584",
+                            "Name": "仙霞岭保护区二期整理功能",
+                            "ProjectName": "公司日常类目",
+                            "ReportDay": 0.47,
+                            "ReportHour": 4,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411571720179683328",
+                            "Name": "官网对接新的客服功能",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.33,
+                            "ReportHour": 2.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411573530929926144",
+                            "Name": "仙霞岭保护区二期整理功能",
+                            "ProjectName": "公司日常类目",
+                            "ReportDay": 0.13,
+                            "ReportHour": 1,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411573677717983232",
+                            "Name": "搜索可以支持文旅相关功能的系统",
+                            "ProjectName": "全域文旅管控平台",
+                            "ReportDay": 0.54,
+                            "ReportHour": 4.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411573969394077696",
+                            "Name": "修改用户反馈的设置支付密码问题",
+                            "ProjectName": "青桐筑家运营管理平台",
+                            "ReportDay": 0.2,
+                            "ReportHour": 1.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411574090060009472",
+                            "Name": "搜索可以支持文旅相关功能的系统",
+                            "ProjectName": "全域文旅管控平台",
+                            "ReportDay": 0.2,
+                            "ReportHour": 1.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411574298728730624",
+                            "Name": "参加迈新员工大会",
+                            "ProjectName": "公司日常类目",
+                            "ReportDay": 0.6,
+                            "ReportHour": 4.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "342206864297562112",
+            "Name": "李勇"
+        },
+        {
+            "Avatar": "upload/2024-03-21/7d5d9b4f-e776-11ee-89ff-2a04a009043e-微信图片_20240321193039.jpg",
+            "DetailList": null,
+            "Id": "223727418375409664",
+            "Name": "周洁"
+        },
+        {
+            "Avatar": "",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411579324094222336",
+                            "Name": "正式环境发布",
+                            "ProjectName": "优姿康网站与公众号",
+                            "ReportDay": 0.27,
+                            "ReportHour": 2,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411579371047358464",
+                            "Name": "埋点及极光推送api",
+                            "ProjectName": "崽在",
+                            "ReportDay": 0.47,
+                            "ReportHour": 3.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411579435574628352",
+                            "Name": "订单数据异常问题处理",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.26,
+                            "ReportHour": 2.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411579482364186624",
+                            "Name": "公众号消息推送",
+                            "ProjectName": "青桐筑家运营管理平台",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411579580668186624",
+                            "Name": "埋点及极光推送api",
+                            "ProjectName": "崽在",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411579722938978304",
+                            "Name": "MT5推送拆分",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.4,
+                            "ReportHour": 3,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411580067530412032",
+                            "Name": "埋点及极光推送api",
+                            "ProjectName": "崽在",
+                            "ReportDay": 0.6,
+                            "ReportHour": 4.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411580273554624512",
+                            "Name": "大智现场-场景落地会议",
+                            "ProjectName": "大智机械OCR识别",
+                            "ReportDay": 0.47,
+                            "ReportHour": 3.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411580356977233920",
+                            "Name": "埋点及极光推送api",
+                            "ProjectName": "崽在",
+                            "ReportDay": 0.33,
+                            "ReportHour": 2.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411580423553421312",
+                            "Name": "订单数据异常问题处理",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.2,
+                            "ReportHour": 1.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 0.4,
+                    "ReportHour": 3,
+                    "TaskList": [
+                        {
+                            "Id": "411580481944424448",
+                            "Name": "公众号消息推送",
+                            "ProjectName": "青桐筑家运营管理平台",
+                            "ReportDay": 0.27,
+                            "ReportHour": 2,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411580511598153728",
+                            "Name": "埋点及极光推送api",
+                            "ProjectName": "崽在",
+                            "ReportDay": 0.13,
+                            "ReportHour": 1,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "264301085454766080",
+            "Name": "吴鹏"
+        },
+        {
+            "Avatar": "upload/2023-10-27/515d02d2-749f-11ee-978e-2a074c040401-lw.jpg",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411559227266961408",
+                            "Name": "系统测试、系统培训演示、试运行问题的回复及处理、操作手册的问题反馈处理",
+                            "ProjectName": "北京国家能源集团安环部项目",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411559304985317376",
+                            "Name": "系统测试、系统培训演示、试运行问题的回复及处理、操作手册的问题反馈处理",
+                            "ProjectName": "北京国家能源集团安环部项目",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 12.5,
+                    "TaskList": [
+                        {
+                            "Id": "411559202254229504",
+                            "Name": "代理商问题讨论，测试问题讨论及修改",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.7,
+                            "ReportHour": 5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411559414418903040",
+                            "Name": "系统测试、系统培训演示、试运行问题的回复及处理、操作手册的问题反馈处理",
+                            "ProjectName": "北京国家能源集团安环部项目",
+                            "ReportDay": 0.3,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411559493001285632",
+                            "Name": "系统测试、系统培训演示、试运行问题的回复及处理、操作手册的问题反馈处理",
+                            "ProjectName": "北京国家能源集团安环部项目",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411559551169990656",
+                            "Name": "系统测试、系统培训演示、试运行问题的回复及处理、操作手册的问题反馈处理",
+                            "ProjectName": "北京国家能源集团安环部项目",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "223721895674515456",
+            "Name": "吴鑫位"
+        },
+        {
+            "Avatar": "upload/2023-10-24/907e1427-724a-11ee-978e-2a074c040401-1316633.jpeg",
+            "DetailList": null,
+            "Id": "214655981622661120",
+            "Name": "吕蕾钧"
+        },
+        {
+            "Avatar": "",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411619152408088576",
+                            "Name": "Coinswek网页端",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411619203264024576",
+                            "Name": "Coinswek网页端",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411619257783685120",
+                            "Name": "Coinswek网页端",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411619290688000000",
+                            "Name": "Coinswek网页端",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411619323590217728",
+                            "Name": "Coinswek网页端",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 1,
+                            "ReportHour": 7.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411619567388332032",
+                            "Name": "Coinswek网页端",
+                            "ProjectName": "君安国际",
+                            "ReportDay": 0.6,
+                            "ReportHour": 4.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411619595127361536",
+                            "Name": "参加员工大会",
+                            "ProjectName": "公司日常类目",
+                            "ReportDay": 0.4,
+                            "ReportHour": 3,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "342207262594961408",
+            "Name": "于亚文"
+        },
+        {
+            "Avatar": "upload/2024-01-19/8b5dabb3-b670-11ee-b764-2a04a009043e-100b61e0-ab40-414e-b4aa-a68f1c3e41b1.png",
+            "DetailList": [
+                {
+                    "Date": "2026-03-16",
+                    "ReportDay": 1,
+                    "ReportHour": 10,
+                    "TaskList": [
+                        {
+                            "Id": "411615409356673024",
+                            "Name": "现场驻点开发",
+                            "ProjectName": "警擎平台",
+                            "ReportDay": 1,
+                            "ReportHour": 10,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-17",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411615940068249600",
+                            "Name": "现场驻点开发",
+                            "ProjectName": "警擎平台",
+                            "ReportDay": 0.4,
+                            "ReportHour": 3,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411618165077315584",
+                            "Name": "推荐服务优化",
+                            "ProjectName": "崽在",
+                            "ReportDay": 0.6,
+                            "ReportHour": 5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-18",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411616100150153216",
+                            "Name": "现场驻点开发",
+                            "ProjectName": "警擎平台",
+                            "ReportDay": 0.27,
+                            "ReportHour": 2,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411618400923029504",
+                            "Name": "推荐服务优化",
+                            "ProjectName": "崽在",
+                            "ReportDay": 0.73,
+                            "ReportHour": 6,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-19",
+                    "ReportDay": 1,
+                    "ReportHour": 8,
+                    "TaskList": [
+                        {
+                            "Id": "411616378295422976",
+                            "Name": "现场驻点开发",
+                            "ProjectName": "警擎平台",
+                            "ReportDay": 1,
+                            "ReportHour": 8,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-20",
+                    "ReportDay": 1,
+                    "ReportHour": 7.5,
+                    "TaskList": [
+                        {
+                            "Id": "411617360395898880",
+                            "Name": "现场驻点开发",
+                            "ProjectName": "警擎平台",
+                            "ReportDay": 0.27,
+                            "ReportHour": 2,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        },
+                        {
+                            "Id": "411618513833693184",
+                            "Name": "推荐服务优化",
+                            "ProjectName": "崽在",
+                            "ReportDay": 0.73,
+                            "ReportHour": 5.5,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                },
+                {
+                    "Date": "2026-03-21",
+                    "ReportDay": 0.4,
+                    "ReportHour": 3,
+                    "TaskList": [
+                        {
+                            "Id": "411618591734501376",
+                            "Name": "推荐服务优化",
+                            "ProjectName": "崽在",
+                            "ReportDay": 0.4,
+                            "ReportHour": 3,
+                            "VerifyDay": 0,
+                            "VerifyHour": 0,
+                            "VerifyState": "未核验"
+                        }
+                    ],
+                    "VerifyDay": 0,
+                    "VerifyHour": 0
+                }
+            ],
+            "Id": "223843787959963648",
+            "Name": "丁甜帝"
+        }
+    ]
+}
