@@ -1,7 +1,12 @@
 import { useThemeStore } from '../store/themeStore';
 import type { PageKey } from '../types';
 
-const ITEMS: Array<{ key: PageKey; label: string; hint: string; icon: string }> = [
+export const PRIMARY_NAV_ITEMS: Array<{
+  key: PageKey;
+  label: string;
+  hint: string;
+  icon: string;
+}> = [
   { key: 'overview', label: '总览', hint: '投入与趋势', icon: '📊' },
   { key: 'agent', label: '智能分析', hint: '规则诊断与 Gemini', icon: '🤖' },
   { key: 'employees', label: '员工视图', hint: '工时热图与碎片化', icon: '👥' },
@@ -10,6 +15,16 @@ const ITEMS: Array<{ key: PageKey; label: string; hint: string; icon: string }> 
   { key: 'quality', label: '数据质量', hint: '缺口、异常与提醒', icon: '🛡️' },
   { key: 'correlation', label: '相关性实验室', hint: '相关性与协同 mock', icon: '🧪' },
   { key: 'report', label: '报告', hint: '管理层摘要与导出', icon: '📄' },
+];
+
+export const SECONDARY_NAV_ITEMS: Array<{
+  key: PageKey;
+  label: string;
+  hint: string;
+  icon: string;
+}> = [
+  { key: 'settings', label: '设置', hint: '文件与工时制', icon: '⚙️' },
+  { key: 'methods', label: '方法说明', hint: '口径、公式与边界', icon: '📘' },
 ];
 
 interface SidebarProps {
@@ -28,7 +43,7 @@ export function Sidebar({ activePage, onChange }: SidebarProps) {
         <p>本地样本驱动的研发效能观察台</p>
       </div>
       <nav className="sidebar-nav">
-        {ITEMS.map((item) => (
+        {PRIMARY_NAV_ITEMS.map((item) => (
           <button
             key={item.key}
             className={`nav-item ${activePage === item.key ? 'active' : ''}`.trim()}
@@ -42,24 +57,18 @@ export function Sidebar({ activePage, onChange }: SidebarProps) {
         ))}
       </nav>
       <div className="sidebar-secondary">
-        <button
-          className={`nav-item nav-item-secondary ${activePage === 'settings' ? 'active' : ''}`.trim()}
-          onClick={() => onChange('settings')}
-          type="button"
-          data-icon="⚙️"
-        >
-          <span>设置</span>
-          <small>文件与工时制</small>
-        </button>
-        <button
-          className={`nav-item nav-item-secondary ${activePage === 'methods' ? 'active' : ''}`.trim()}
-          onClick={() => onChange('methods')}
-          type="button"
-          data-icon="📘"
-        >
-          <span>方法说明</span>
-          <small>口径、公式与边界</small>
-        </button>
+        {SECONDARY_NAV_ITEMS.map((item) => (
+          <button
+            key={item.key}
+            className={`nav-item nav-item-secondary ${activePage === item.key ? 'active' : ''}`.trim()}
+            onClick={() => onChange(item.key)}
+            type="button"
+            data-icon={item.icon}
+          >
+            <span>{item.label}</span>
+            <small>{item.hint}</small>
+          </button>
+        ))}
 
         <div className="theme-switcher">
           <button

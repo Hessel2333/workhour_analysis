@@ -43,11 +43,11 @@ export function ToastContainer() {
             style={{
               pointerEvents: 'auto',
               cursor: 'pointer',
-              background: 'rgba(255, 255, 255, 0.94)',
+              background: 'var(--surface-elevated)',
               backdropFilter: 'blur(20px)',
               padding: '12px 18px',
               borderRadius: 16,
-              boxShadow: '0 12px 40px rgba(0,0,0,0.12), inset 0 0 0 1px rgba(0,0,0,0.05)',
+              boxShadow: 'var(--shadow-floating), inset 0 0 0 1px var(--line)',
               display: 'flex',
               alignItems: 'center',
               gap: 10,

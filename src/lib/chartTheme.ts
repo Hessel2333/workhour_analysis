@@ -57,7 +57,7 @@ function themeAxis(
 export function withChartTheme(option: ChartOption, isDark = false): ChartOption {
   const textColor = isDark ? '#f5f5f7' : '#1d1d1f';
   const lineColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(15, 23, 42, 0.06)';
-  const secondaryTextColor = isDark ? '#8e8e93' : '#5b5b60';
+  const secondaryTextColor = isDark ? '#c7c7cc' : '#5b5b60';
 
   return {
     ...option,
@@ -70,10 +70,12 @@ export function withChartTheme(option: ChartOption, isDark = false): ChartOption
     },
     tooltip: {
       backgroundColor: isDark ? 'rgba(28, 28, 30, 0.94)' : 'rgba(255, 255, 255, 0.96)',
-      borderWidth: 0,
+      borderWidth: isDark ? 1 : 0,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent',
       textStyle: {
         color: textColor,
         fontSize: 12,
+        lineHeight: 18,
       },
       extraCssText: `box-shadow: 0 12px 32px ${
         isDark ? 'rgba(0,0,0,0.4)' : 'rgba(15,23,42,0.12)'
@@ -85,6 +87,7 @@ export function withChartTheme(option: ChartOption, isDark = false): ChartOption
           textStyle: {
             color: secondaryTextColor,
             fontSize: 12,
+            lineHeight: 16,
             ...(option.legend.textStyle ?? {}),
           },
           itemWidth: 10,

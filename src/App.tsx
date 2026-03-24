@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { AgentPage } from './pages/AgentPage';
 import { DetailDrawer } from './components/DetailDrawer';
 import { FilterBar } from './components/FilterBar';
+import { MobilePageBar } from './components/MobilePageBar';
 import { Sidebar } from './components/Sidebar';
 import { CorrelationPage } from './pages/CorrelationPage';
 import { EmployeesPage } from './pages/EmployeesPage';
@@ -110,6 +111,7 @@ export default function App() {
           onReset={resetFilters}
           onToggleImmersive={setImmersiveMode}
         />
+        <MobilePageBar activePage={activePage} onChange={setActivePage} />
         <motion.div
           key={activePage}
           className="workspace"

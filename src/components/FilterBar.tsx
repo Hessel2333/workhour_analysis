@@ -147,9 +147,6 @@ export function FilterBar({
                     style={{
                       position: 'absolute',
                       inset: 0,
-                      background: 'var(--panel-strong)',
-                      borderRadius: 999,
-                      boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08), inset 0 0 0 1px rgba(15, 23, 42, 0.04)',
                       zIndex: -1,
                     }}
                     transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
