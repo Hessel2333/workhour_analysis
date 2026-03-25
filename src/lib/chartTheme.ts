@@ -80,6 +80,19 @@ function ensureGridMin(value: unknown, minimum: number) {
   return value ?? minimum;
 }
 
+function compactGridInset(
+  value: unknown,
+  fallback: number,
+  maximum?: number,
+) {
+  if (typeof value === 'number') {
+    const clamped = Math.max(value, fallback);
+    return maximum != null ? Math.min(clamped, maximum) : clamped;
+  }
+
+  return fallback;
+}
+
 function formatTooltipValue(value: unknown) {
   if (typeof value === 'number') {
     return formatNumber(value, 1);
@@ -347,6 +360,16 @@ export function withChartTheme(
     );
   }
 
+  const compactTop = hasTopLegend ? 40 : 18;
+  const compactTopMax = hasTopLegend ? 44 : 24;
+  const compactBottom = hasBottomVisualMap
+    ? minimumBottom
+    : hasBottomLegend
+      ? 52
+      : hasXAxisName
+        ? 46
+        : 28;
+
   return {
     ...option,
     animationDuration: 280,
@@ -382,10 +405,14 @@ export function withChartTheme(
     yAxis,
     grid: {
       ...optionGrid,
-      bottom: ensureGridMin(optionGrid.bottom, minimumBottom),
+      bottom: isCompact
+        ? compactGridInset(optionGrid.bottom, compactBottom)
+        : ensureGridMin(optionGrid.bottom, minimumBottom),
       left: ensureGridMin(optionGrid.left, isCompact ? 36 : 45),
       right: ensureGridMin(optionGrid.right, 25),
-      top: ensureGridMin(optionGrid.top, isCompact ? (hasTopLegend ? 60 : 32) : 45),
+      top: isCompact
+        ? compactGridInset(optionGrid.top, compactTop, compactTopMax)
+        : ensureGridMin(optionGrid.top, 45),
       containLabel: optionGrid.containLabel ?? true,
     },
   };
