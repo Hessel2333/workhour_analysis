@@ -240,7 +240,7 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'value', name: '总工时（h）' },
-    yAxis: { type: 'category', data: displayedProjects.map((item) => item.projectName) },
+    yAxis: { type: 'category', inverse: true, data: displayedProjects.map((item) => item.projectName) },
     series: [
       {
         type: 'bar',
@@ -369,7 +369,7 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
     },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'value', name: '趋势斜率' },
-    yAxis: { type: 'category', data: fastestProjects.map((item) => item.projectName) },
+    yAxis: { type: 'category', inverse: true, data: fastestProjects.map((item) => item.projectName) },
     series: [
       {
         type: 'bar',
@@ -402,7 +402,7 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
       axisLabel: { formatter: '{value}%' },
       max: 100,
     },
-    yAxis: { type: 'category', data: reworkRankProjects.map((item) => item.projectName) },
+    yAxis: { type: 'category', inverse: true, data: reworkRankProjects.map((item) => item.projectName) },
     series: [
       {
         type: 'bar',
@@ -449,6 +449,7 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
     },
     yAxis: {
       type: 'category',
+      inverse: true,
       data: workflowStats.map((item) => item.projectName),
     },
     series: workflowOrder.map((label) => ({

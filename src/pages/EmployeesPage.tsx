@@ -203,7 +203,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'value', name: '总工时（h）' },
-    yAxis: { type: 'category', data: topHoursEmployees.map((item) => item.name) },
+    yAxis: { type: 'category', inverse: true, data: topHoursEmployees.map((item) => item.name) },
     series: [
       {
         type: 'bar',
@@ -217,7 +217,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'value', name: '聚焦度', max: 100, axisLabel: { formatter: '{value}%' } },
-    yAxis: { type: 'category', data: focusedEmployees.map((item) => item.name) },
+    yAxis: { type: 'category', inverse: true, data: focusedEmployees.map((item) => item.name) },
     series: [
       {
         type: 'bar',
@@ -232,7 +232,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
     legend: { top: 0 },
     grid: { left: 24, right: 20, top: 48, bottom: 40, containLabel: true },
     xAxis: { type: 'value', name: '工时占比', max: 100, axisLabel: { formatter: '{value}%' } },
-    yAxis: { type: 'category', data: topRiskEmployees.map((item) => item.name) },
+    yAxis: { type: 'category', inverse: true, data: topRiskEmployees.map((item) => item.name) },
     series: ['开发', '维护', '现场支持', '会议'].map((topic, index) => ({
       name: topic,
       type: 'bar',
@@ -696,7 +696,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
     },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'value', name: '救火指数' },
-    yAxis: { type: 'category', data: topFireEmployees.map((item) => item.name) },
+    yAxis: { type: 'category', inverse: true, data: topFireEmployees.map((item) => item.name) },
     series: [
       {
         type: 'bar',

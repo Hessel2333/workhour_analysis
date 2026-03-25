@@ -1,16 +1,29 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useToastStore } from '../store/toastStore';
-import type { BaseDataset, Filters } from '../types';
+import { getProjectReworkShareMetric } from '../lib/metrics';
+import { isReworkTask } from '../lib/taskSignals';
+import type { AnalyticsView, BaseDataset, Filters, PageKey } from '../types';
 import { Popover, PopoverMenu } from './Popover';
+
+interface QuickScenario {
+  id: string;
+  label: string;
+  description: string;
+  page: PageKey;
+  patch: Partial<Filters>;
+}
 
 interface FilterBarProps {
   dataset: BaseDataset;
   filters: Filters;
+  view: AnalyticsView;
+  activePage: PageKey;
   immersiveMode: boolean;
   parseError: string;
   onPatchFilters: (patch: Partial<Filters>) => void;
   onReset: () => void;
+  onApplyScenario: (scenario: QuickScenario) => void;
   onToggleImmersive: (value: boolean) => void;
 }
 
@@ -62,10 +75,13 @@ function shiftYear(date: string, diff: number) {
 export function FilterBar({
   dataset,
   filters,
+  view,
+  activePage,
   immersiveMode,
   parseError,
   onPatchFilters,
   onReset,
+  onApplyScenario,
   onToggleImmersive,
 }: FilterBarProps) {
   const addToast = useToastStore((state) => state.addToast);
@@ -87,6 +103,110 @@ export function FilterBar({
     filters.periodMode === 'month'
       ? `${focusDate.slice(0, 4)}年${Number(focusDate.slice(5, 7))}月`
       : `${focusDate.slice(0, 4)}年`;
+  const topReworkProject = [...view.projectStats]
+    .map((project) => {
+      const projectTasks = view.tasks.filter((task) => task.projectName === project.projectName);
+      const reworkHours = projectTasks
+        .filter((task) => isReworkTask(task))
+        .reduce((sum, task) => sum + task.reportHour, 0);
+      return {
+        projectName: project.projectName,
+        reworkRate: getProjectReworkShareMetric({
+          totalHours: project.totalHours,
+          reworkHours,
+        }).value,
+      };
+    })
+    .sort((left, right) => right.reworkRate - left.reworkRate)[0];
+  const topSwitchEmployee = [...view.employeeStats]
+    .sort((left, right) => right.multiProjectRate - left.multiProjectRate)[0];
+  const lowVerifyCoverageProject = Array.from(
+    view.tasks.reduce((map, task) => {
+      const current = map.get(task.projectName) ?? { verified: 0, total: 0 };
+      current.total += 1;
+      if (task.verifyState === '已核验') current.verified += 1;
+      map.set(task.projectName, current);
+      return map;
+    }, new Map<string, { verified: number; total: number }>()),
+  )
+    .map(([projectName, current]) => ({
+      projectName,
+      coverage: current.total ? current.verified / current.total : 0,
+      total: current.total,
+    }))
+    .filter((item) => item.total > 0)
+    .sort((left, right) => left.coverage - right.coverage)[0];
+  const sprintProject = [...view.projectStats]
+    .sort((left, right) => right.trendSlope - left.trendSlope)[0];
+  const quickScenarios: QuickScenario[] = [];
+
+  if (topReworkProject) {
+    quickScenarios.push({
+      id: 'high_rework_project',
+      label: '高返工项目',
+      description: `${topReworkProject.projectName} 返工压力最高`,
+      page: 'projects',
+      patch: {
+        employeeId: '',
+        projectName: topReworkProject.projectName,
+        topicLabel: '',
+      },
+    });
+  }
+
+  if (topSwitchEmployee) {
+    quickScenarios.push({
+      id: 'high_switch_employee',
+      label: '高切换员工',
+      description: `${topSwitchEmployee.name} 多项目率最高`,
+      page: 'employees',
+      patch: {
+        employeeId: topSwitchEmployee.employeeId,
+        projectName: '',
+        topicLabel: '',
+      },
+    });
+  }
+
+  if (lowVerifyCoverageProject) {
+    quickScenarios.push({
+      id: 'low_verify_project',
+      label: '低核验覆盖项目',
+      description: `${lowVerifyCoverageProject.projectName} 核验覆盖偏低`,
+      page: 'quality',
+      patch: {
+        employeeId: '',
+        projectName: lowVerifyCoverageProject.projectName,
+        topicLabel: '',
+      },
+    });
+  }
+
+  if (sprintProject) {
+    quickScenarios.push({
+      id: 'sprint_project',
+      label: '冲刺期项目',
+      description: `${sprintProject.projectName} 当前上升最快`,
+      page: 'projects',
+      patch: {
+        employeeId: '',
+        projectName: sprintProject.projectName,
+        topicLabel: '',
+      },
+    });
+  }
+
+  quickScenarios.push({
+    id: 'pending_task_review',
+    label: '分类待复核任务',
+    description: '直接进入待确认任务视角',
+    page: 'tasks',
+    patch: {
+      employeeId: '',
+      projectName: '',
+      topicLabel: '待确认',
+    },
+  });
 
   const changePeriodMode = (mode: 'month' | 'year') => {
     if (mode === filters.periodMode) return;
@@ -266,6 +386,31 @@ export function FilterBar({
           </div>
         </div>
       </div>
+      {quickScenarios.length ? (
+        <div className="shortcut-ribbon" aria-label="问题场景快捷筛选">
+          <span className="shortcut-ribbon-label">快捷场景</span>
+          <div className="shortcut-ribbon-track">
+            {quickScenarios.map((scenario) => {
+              const isActive =
+                activePage === scenario.page &&
+                (scenario.patch.employeeId ?? '') === filters.employeeId &&
+                (scenario.patch.projectName ?? '') === filters.projectName &&
+                (scenario.patch.topicLabel ?? '') === filters.topicLabel;
+              return (
+                <button
+                  key={scenario.id}
+                  type="button"
+                  className={`shortcut-chip ${isActive ? 'active' : ''}`.trim()}
+                  onClick={() => onApplyScenario(scenario)}
+                >
+                  <strong>{scenario.label}</strong>
+                  <span>{scenario.description}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
       {parseError ? (
         <div className="sample-banner error">
           <strong>解析失败：{parseError}</strong>

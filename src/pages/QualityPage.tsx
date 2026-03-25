@@ -135,7 +135,7 @@ export function QualityPage({ dataset, view, onOpenDetail }: QualityPageProps) {
       map.set(label, (map.get(label) ?? 0) + 1);
       return map;
     }, new Map<string, number>()),
-  );
+  ).sort((left, right) => right[1] - left[1]);
   const qualityFlagCounts = view.qualityFlags.reduce((map, flag) => {
     map.set(flag.flagType, (map.get(flag.flagType) ?? 0) + 1);
     return map;
@@ -232,7 +232,7 @@ export function QualityPage({ dataset, view, onOpenDetail }: QualityPageProps) {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'value', name: '异常次数' },
-    yAxis: { type: 'category', data: flagCountEntries.map(([flagType]) => flagType) },
+    yAxis: { type: 'category', inverse: true, data: flagCountEntries.map(([flagType]) => flagType) },
     series: [
       {
         type: 'bar',

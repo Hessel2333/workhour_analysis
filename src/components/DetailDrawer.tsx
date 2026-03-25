@@ -69,8 +69,8 @@ function FocusChartShell({
   const hasLegend = Boolean((option as { legend?: unknown }).legend);
   const chartHeight = isPhone
     ? hasLegend
-      ? 260
-      : 220
+      ? 272
+      : 236
     : isCompact
       ? hasLegend
         ? 280
@@ -363,7 +363,7 @@ export function DetailDrawer({
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'value', name: '工时' },
-        yAxis: { type: 'category', data: topicNames },
+        yAxis: { type: 'category', inverse: true, data: topicNames },
         series: [
           {
             type: 'bar',
@@ -646,6 +646,15 @@ export function DetailDrawer({
         .sort((left, right) => right.hours - left.hours);
 
       const topicNames = Array.from(new Set(projectTasks.map((task) => task.topicLabel)));
+      const rankedTopicNames = topicNames
+        .map((topicLabel) => ({
+          topicLabel,
+          hours: projectTasks
+            .filter((task) => task.topicLabel === topicLabel)
+            .reduce((sum, task) => sum + task.reportHour, 0),
+        }))
+        .sort((left, right) => right.hours - left.hours)
+        .map((item) => item.topicLabel);
       const groupedTrend = groupSeriesByGranularity(
         view.uniqueDates.map((date) => ({
           date,
@@ -879,7 +888,7 @@ export function DetailDrawer({
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'value', name: '工时' },
-        yAxis: { type: 'category', data: participants.map((item) => item.name) },
+        yAxis: { type: 'category', inverse: true, data: participants.map((item) => item.name) },
         series: [
           {
             type: 'bar',
@@ -893,11 +902,11 @@ export function DetailDrawer({
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'value', name: '工时' },
-        yAxis: { type: 'category', data: topicNames },
+        yAxis: { type: 'category', inverse: true, data: rankedTopicNames },
         series: [
           {
             type: 'bar',
-            data: topicNames.map((topicLabel) =>
+            data: rankedTopicNames.map((topicLabel) =>
               projectTasks
                 .filter((task) => task.topicLabel === topicLabel)
                 .reduce((sum, task) => sum + task.reportHour, 0),
@@ -905,7 +914,7 @@ export function DetailDrawer({
             itemStyle: {
               borderRadius: 10,
               color: (params: { dataIndex: number }) =>
-                topicColor(topicNames[params.dataIndex] ?? '', params.dataIndex),
+                topicColor(rankedTopicNames[params.dataIndex] ?? '', params.dataIndex),
             },
           },
         ],
@@ -1024,9 +1033,19 @@ export function DetailDrawer({
     }
 
     if (detail.kind === 'date' && detail.date) {
-      const dayRows = view.employeeDays.filter((day) => day.date === detail.date);
+      const dayRows = [...view.employeeDays]
+        .filter((day) => day.date === detail.date)
+        .sort((left, right) => right.reportHour - left.reportHour);
       const dayTasks = view.tasks.filter((task) => task.date === detail.date);
-      const projectNames = Array.from(new Set(dayTasks.map((task) => task.projectName)));
+      const projectNames = Array.from(new Set(dayTasks.map((task) => task.projectName)))
+        .map((projectName) => ({
+          projectName,
+          hours: dayTasks
+            .filter((task) => task.projectName === projectName)
+            .reduce((sum, task) => sum + task.reportHour, 0),
+        }))
+        .sort((left, right) => right.hours - left.hours)
+        .map((item) => item.projectName);
       const topicNames = Array.from(new Set(dayTasks.map((task) => task.topicLabel)));
 
       const employeeBarOption = {
@@ -1035,6 +1054,7 @@ export function DetailDrawer({
         xAxis: { type: 'value', name: '工时' },
         yAxis: {
           type: 'category',
+          inverse: true,
           data: dayRows.map((day) =>
             day.employeeName,
           ),
@@ -1052,7 +1072,7 @@ export function DetailDrawer({
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'value', name: '工时' },
-        yAxis: { type: 'category', data: projectNames },
+        yAxis: { type: 'category', inverse: true, data: projectNames },
         series: [
           {
             type: 'bar',

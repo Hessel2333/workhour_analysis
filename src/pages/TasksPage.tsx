@@ -44,6 +44,7 @@ function TopicExplanationCell({
 }
 
 export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
+  const topicRank = [...view.topicStats].sort((left, right) => right.totalHours - left.totalHours);
   const reviewTasks = view.tasks.filter(
     (task) =>
       task.topicLabel === '未分类' ||
@@ -75,15 +76,15 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'value', name: '总工时（h）' },
-    yAxis: { type: 'category', data: view.topicStats.map((item) => item.topicLabel) },
+    yAxis: { type: 'category', inverse: true, data: topicRank.map((item) => item.topicLabel) },
     series: [
       {
         type: 'bar',
-        data: view.topicStats.map((item) => item.totalHours),
+        data: topicRank.map((item) => item.totalHours),
         itemStyle: {
           borderRadius: 10,
           color: (params: { dataIndex: number }) =>
-            topicColor(view.topicStats[params.dataIndex]?.topicLabel ?? '', params.dataIndex),
+            topicColor(topicRank[params.dataIndex]?.topicLabel ?? '', params.dataIndex),
         },
       },
     ],

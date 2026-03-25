@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { PRIMARY_NAV_ITEMS, SECONDARY_NAV_ITEMS } from './Sidebar';
 import type { PageKey } from '../types';
 
@@ -14,17 +15,82 @@ const secondaryItems = [
 ];
 
 export function MobilePageBar({ activePage, onChange }: MobilePageBarProps) {
+  const [showMore, setShowMore] = useState(false);
+  const isSecondaryActive = secondaryItems.some((item) => item.key === activePage);
+
+  const handleChange = (page: PageKey) => {
+    onChange(page);
+    setShowMore(false);
+  };
+
   return (
     <div className="mobile-page-strip" aria-label="移动端页面导航">
-      <div className="mobile-page-group">
-        <span className="mobile-page-section-label">常用</span>
-        <div className="mobile-page-scroll">
+      <div className="mobile-page-strip-default">
+        <div className="mobile-page-group">
+          <span className="mobile-page-section-label">常用</span>
+          <div className="mobile-page-scroll">
+            {primaryItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`mobile-page-button ${activePage === item.key ? 'active' : ''}`.trim()}
+                onClick={() => handleChange(item.key)}
+              >
+                <span className="mobile-page-icon" aria-hidden="true">
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mobile-page-group mobile-page-group-secondary">
+          <span className="mobile-page-section-label">更多</span>
+          <div className="mobile-page-scroll">
+            {secondaryItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`mobile-page-button mobile-page-button-secondary ${activePage === item.key ? 'active' : ''}`.trim()}
+                onClick={() => handleChange(item.key)}
+              >
+                <span className="mobile-page-icon" aria-hidden="true">
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mobile-bottom-nav" aria-label="移动端底部导航">
+        {showMore ? (
+          <div className="mobile-bottom-sheet" id="mobile-bottom-sheet">
+            {secondaryItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`mobile-bottom-sheet-button ${activePage === item.key ? 'active' : ''}`.trim()}
+                onClick={() => handleChange(item.key)}
+              >
+                <span className="mobile-page-icon" aria-hidden="true">
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="mobile-bottom-dock">
           {primaryItems.map((item) => (
             <button
               key={item.key}
               type="button"
-              className={`mobile-page-button ${activePage === item.key ? 'active' : ''}`.trim()}
-              onClick={() => onChange(item.key)}
+              className={`mobile-bottom-button ${activePage === item.key ? 'active' : ''}`.trim()}
+              onClick={() => handleChange(item.key)}
             >
               <span className="mobile-page-icon" aria-hidden="true">
                 {item.icon}
@@ -32,24 +98,19 @@ export function MobilePageBar({ activePage, onChange }: MobilePageBarProps) {
               <span>{item.label}</span>
             </button>
           ))}
-        </div>
-      </div>
-      <div className="mobile-page-group mobile-page-group-secondary">
-        <span className="mobile-page-section-label">更多</span>
-        <div className="mobile-page-scroll">
-          {secondaryItems.map((item) => (
+
           <button
-            key={item.key}
             type="button"
-            className={`mobile-page-button mobile-page-button-secondary ${activePage === item.key ? 'active' : ''}`.trim()}
-            onClick={() => onChange(item.key)}
+            className={`mobile-bottom-button ${showMore || isSecondaryActive ? 'active' : ''}`.trim()}
+            onClick={() => setShowMore((current) => !current)}
+            aria-expanded={showMore}
+            aria-controls="mobile-bottom-sheet"
           >
             <span className="mobile-page-icon" aria-hidden="true">
-              {item.icon}
+              {showMore ? '✕' : '⋯'}
             </span>
-            <span>{item.label}</span>
+            <span>{isSecondaryActive ? '更多页' : '更多'}</span>
           </button>
-          ))}
         </div>
       </div>
     </div>

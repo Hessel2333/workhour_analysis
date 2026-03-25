@@ -3,7 +3,6 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { BaseDataset, DetailSelection, Filters } from '../types';
 import { ChartPanel } from '../components/ChartPanel';
 import { CollapsiblePanel } from '../components/CollapsiblePanel';
-import { DataSourceBoundaryBanner } from '../components/DataSourceBoundaryBanner';
 import { DataTable } from '../components/DataTable';
 import { MetricCard } from '../components/MetricCard';
 import { MetaPill } from '../components/MetaPill';
@@ -402,12 +401,13 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
     xAxis: { type: 'value', name: '加班小时' },
     yAxis: {
       type: 'category',
-      data: topOvertimeEmployees.map((item) => item.name).reverse(),
+      inverse: true,
+      data: topOvertimeEmployees.map((item) => item.name),
     },
     series: [
       {
         type: 'bar',
-        data: topOvertimeEmployees.map((item) => item.total).reverse(),
+        data: topOvertimeEmployees.map((item) => item.total),
         color: '#ff9f0a',
       },
     ],
@@ -475,13 +475,6 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
 
   return (
     <div className="page-grid">
-      <DataSourceBoundaryBanner
-        className="panel-wide"
-        realSources={['工时原始数据', '任务明细', '核验状态']}
-        mockSources={
-          analysisConfig.ruleToggles.showMockCharts ? ['Git', 'AI 使用', '用户反馈'] : []
-        }
-      />
       {view.dataHealth.sampleDays < analysisConfig.thresholds.lowSampleDays ? (
         <Panel
           title="低样本模式"

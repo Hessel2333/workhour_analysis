@@ -299,7 +299,7 @@ export function CorrelationPage({
       map.set(item.projectName, current);
       return map;
     }, new Map<string, { score: number; count: number }>()),
-  );
+  ).sort((left, right) => right[1].score / right[1].count - left[1].score / left[1].count);
 
   const employeeRelationPoints = view.employeeStats.map((employee) => ({
     x: Number((employee.multiProjectRate * 100).toFixed(1)),

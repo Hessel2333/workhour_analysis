@@ -53,7 +53,7 @@ export function ChartPanel({
 
   const hasLegend = Boolean((option as { legend?: unknown }).legend);
   const resolvedHeight = isPhone
-    ? Math.max(height - 84 + (hasLegend ? 28 : 0), 220)
+    ? Math.max(height - 64 + (hasLegend ? 32 : 0), 236)
     : isCompact
       ? Math.max(height - 48 + (hasLegend ? 20 : 0), 250)
       : height;

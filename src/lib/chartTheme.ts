@@ -108,6 +108,31 @@ function middleEllipsisLabel(value: unknown, isCompact: boolean) {
   return `${text.slice(0, headLength)}…${text.slice(-tailLength)}`;
 }
 
+function truncateCategoryLabel(
+  value: unknown,
+  isCompact: boolean,
+  dimension: 'x' | 'y',
+) {
+  const text = String(value ?? '');
+  const maxLength = isCompact
+    ? dimension === 'x'
+      ? 8
+      : 10
+    : dimension === 'x'
+      ? 12
+      : 18;
+
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  if (dimension === 'x') {
+    return `${text.slice(0, Math.max(maxLength - 1, 1))}…`;
+  }
+
+  return middleEllipsisLabel(text, isCompact);
+}
+
 function inferTimeAxisName(data: unknown) {
   if (!Array.isArray(data) || data.length === 0) return '';
   const labels = data.map((item) => String(item ?? '')).filter(Boolean);
@@ -185,14 +210,27 @@ function themeAxis(
       : {}),
     axisLabel: {
       ...(
-        dimension === 'y' && axis.type === 'category'
+        axis.type === 'category'
           ? {
-              width: isCompact ? 132 : 220,
+              width:
+                dimension === 'y'
+                  ? isCompact
+                    ? 132
+                    : 220
+                  : isCompact
+                    ? 64
+                    : 96,
               overflow: 'truncate',
               ellipsis: '…',
               ...(axis.axisLabel?.formatter == null
                 ? {
-                    formatter: (value: unknown) => middleEllipsisLabel(value, isCompact),
+                    formatter: (value: unknown) =>
+                      truncateCategoryLabel(value, isCompact, dimension),
+                  }
+                : {}),
+              ...(dimension === 'x' && isCompact && axis.axisLabel?.rotate == null
+                ? {
+                    rotate: Array.isArray(axis.data) && axis.data.length > 4 ? 24 : 0,
                   }
                 : {}),
             }
@@ -200,7 +238,7 @@ function themeAxis(
       ),
       color: textColor,
       fontSize: isCompact ? 9 : 10,
-      margin: isCompact ? 6 : 8,
+      margin: isCompact ? (dimension === 'x' ? 10 : 6) : 8,
       hideOverlap: true, // 自动隐藏重叠的标签
       ...(axis.type === 'value' && isPercentSemanticName(normalizeAxisName(axis, dimension)) && axis.axisLabel?.formatter == null
         ? {
@@ -235,7 +273,7 @@ function themeAxis(
         : axis.splitLine,
     nameTextStyle: {
       color: textColor,
-      fontSize: 12,
+      fontSize: isCompact ? 10 : 12,
       ...(axis.nameTextStyle ?? {}),
     },
   };
@@ -256,17 +294,23 @@ export function withChartTheme(
         type: isCompact ? 'scroll' : option.legend.type,
         textStyle: {
           color: secondaryTextColor,
-          fontSize: isCompact ? 11 : 12,
-          lineHeight: 16,
+          fontSize: isCompact ? 10 : 12,
+          lineHeight: isCompact ? 14 : 16,
           ...(option.legend.textStyle ?? {}),
         },
         itemWidth: isCompact ? 8 : 10,
         itemHeight: isCompact ? 8 : 10,
+        itemGap: option.legend.itemGap ?? (isCompact ? 10 : 16),
         pageIconColor: textColor,
         pageTextStyle: {
           color: secondaryTextColor,
           ...(option.legend.pageTextStyle ?? {}),
         },
+        ...(isCompact && option.legend.formatter == null
+          ? {
+              formatter: (name: string) => truncateCategoryLabel(name, true, 'x'),
+            }
+          : {}),
         ...(option.legend ?? {}),
       }
     : undefined;
@@ -319,12 +363,14 @@ export function withChartTheme(
       borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent',
       textStyle: {
         color: textColor,
-        fontSize: 12,
-        lineHeight: 18,
+        fontSize: isCompact ? 11 : 12,
+        lineHeight: isCompact ? 17 : 18,
       },
       extraCssText: `box-shadow: 0 12px 32px ${
         isDark ? 'rgba(0,0,0,0.4)' : 'rgba(15,23,42,0.12)'
-      }; border-radius: 14px; padding: 10px 12px; backdrop-filter: blur(10px);`,
+      }; border-radius: 14px; padding: ${isCompact ? '8px 10px' : '10px 12px'}; max-width: ${
+        isCompact ? '72vw' : 'min(360px, 80vw)'
+      }; white-space: normal; backdrop-filter: blur(10px);`,
       valueFormatter:
         option.tooltip?.valueFormatter ??
         ((value: unknown) => formatTooltipValue(value)),
