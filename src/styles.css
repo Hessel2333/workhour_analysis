@@ -2814,6 +2814,11 @@ button:disabled {
     gap: 10px;
   }
 
+  .chart-panel .panel-header > div:first-child {
+    flex: initial;
+    width: 100%;
+  }
+
   .chart-panel .panel-actions {
     width: 100%;
     margin-left: 0;
