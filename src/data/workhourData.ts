@@ -1,4 +1,5 @@
 import rawSource from '../../data.json?raw';
+import { analysisConfig } from '../config/analysisConfig';
 import { buildMockConnectors } from './connectors';
 import { classifyTaskTopic } from './topicRules';
 import type {
@@ -41,6 +42,8 @@ export function parseWorkhourSource(source: string): BaseDataset {
   const tasks: Task[] = [];
   const taskTopics: TaskTopic[] = [];
   const qualityFlags: QualityFlag[] = [];
+  let rawTaskCount = 0;
+  let rawEmployeeDayCount = 0;
   let excludedImpossibleDayCount = 0;
   let excludedImpossibleTaskCount = 0;
 
@@ -68,6 +71,8 @@ export function parseWorkhourSource(source: string): BaseDataset {
 
     employee.DetailList.forEach((detail) => {
       const dayTasks = detail.TaskList ?? [];
+      rawEmployeeDayCount += 1;
+      rawTaskCount += dayTasks.length;
       const impossibleTasks = dayTasks.filter((item) => item.ReportHour > 24 || item.ReportHour < 0);
       const hasImpossibleDayHours = detail.ReportHour > 24 || detail.ReportHour < 0;
 
@@ -86,9 +91,9 @@ export function parseWorkhourSource(source: string): BaseDataset {
 
       const projectCount = new Set(dayTasks.map((item) => item.ProjectName)).size;
       const anomalyScore =
-        (detail.ReportHour >= 9 ? 1 : 0) +
-        (dayTasks.length >= 3 ? 1 : 0) +
-        (projectCount >= 3 ? 1 : 0) +
+        (detail.ReportHour >= analysisConfig.thresholds.anomalyDailyHours ? 1 : 0) +
+        (dayTasks.length >= analysisConfig.thresholds.highTaskFragmentationCount ? 1 : 0) +
+        (projectCount >= analysisConfig.thresholds.highProjectSwitchCount ? 1 : 0) +
         (detail.VerifyHour === 0 && detail.ReportHour > 0 ? 1 : 0);
 
       employeeDays.push({
@@ -101,7 +106,7 @@ export function parseWorkhourSource(source: string): BaseDataset {
         verifyHour: detail.VerifyHour,
         taskCount: dayTasks.length,
         projectCount,
-        isAnomalous: anomalyScore >= 2,
+        isAnomalous: anomalyScore >= analysisConfig.thresholds.anomalyScoreThreshold,
         anomalyScore,
       });
 
@@ -115,7 +120,7 @@ export function parseWorkhourSource(source: string): BaseDataset {
         });
       }
 
-      if (projectCount >= 3) {
+      if (projectCount >= analysisConfig.thresholds.highProjectSwitchCount) {
         qualityFlags.push({
           entityType: 'employeeDay',
           entityId: `${employee.Id}:${detail.Date}`,
@@ -142,6 +147,7 @@ export function parseWorkhourSource(source: string): BaseDataset {
           topicLabel: topic.topicLabel,
           topicConfidence: topic.topicConfidence,
           topicSource: topic.topicSource,
+          topicRuleName: topic.topicRuleName,
           keywordHits: topic.keywordHits,
         };
 
@@ -151,6 +157,7 @@ export function parseWorkhourSource(source: string): BaseDataset {
           topicLabel: topic.topicLabel,
           topicConfidence: topic.topicConfidence,
           topicSource: topic.topicSource,
+          topicRuleName: topic.topicRuleName,
         });
 
         if (topic.topicLabel === '未分类') {
@@ -201,6 +208,14 @@ export function parseWorkhourSource(source: string): BaseDataset {
     tasks,
     taskTopics,
     qualityFlags,
+    ingestionSummary: {
+      rawTaskCount,
+      validTaskCount: tasks.length,
+      excludedImpossibleTaskCount,
+      rawEmployeeDayCount,
+      validEmployeeDayCount: employeeDays.length,
+      excludedImpossibleDayCount,
+    },
     dateRange: {
       start: uniqueDates[0] ?? '',
       end: uniqueDates[uniqueDates.length - 1] ?? '',

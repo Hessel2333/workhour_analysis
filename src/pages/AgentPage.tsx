@@ -4,6 +4,7 @@ import { CollapsiblePanel } from '../components/CollapsiblePanel';
 import { MetricCard } from '../components/MetricCard';
 import { MetaPill } from '../components/MetaPill';
 import { Panel } from '../components/Panel';
+import { analysisConfig } from '../config/analysisConfig';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { severityLabel } from '../lib/format';
 import type { AnalyticsView, PageKey } from '../types';
@@ -139,7 +140,7 @@ export function AgentPage({ view, onNavigate }: AgentPageProps) {
   const scopeOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
-    xAxis: { type: 'value' },
+    xAxis: { type: 'value', name: '问题数量' },
     yAxis: {
       type: 'category',
       data: ['员工侧', '项目侧', '数据侧'],
@@ -157,7 +158,7 @@ export function AgentPage({ view, onNavigate }: AgentPageProps) {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'category', data: ['P1', 'P2', 'P3'] },
-    yAxis: { type: 'value' },
+    yAxis: { type: 'value', name: '问题数量' },
     series: [
       {
         type: 'bar',
@@ -266,9 +267,11 @@ export function AgentPage({ view, onNavigate }: AgentPageProps) {
         subtitle="把最值得看的问题收成紧凑卡片"
         className="panel-wide"
       >
-        <div className="analysis-card-grid">
+          <div className="analysis-card-grid">
           {view.agentReport.issues.length ? (
-            view.agentReport.issues.slice(0, 6).map((issue) => (
+            view.agentReport.issues
+              .slice(0, analysisConfig.displayLimits.agentIssueCards)
+              .map((issue) => (
               <article key={issue.id} className={`analysis-card severity-${issue.severity}`}>
                 <div className="analysis-card-header">
                   <div>

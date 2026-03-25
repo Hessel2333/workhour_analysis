@@ -74,13 +74,13 @@ export default function App() {
           />
         );
       case 'employees':
-        return <EmployeesPage view={view} onOpenDetail={openDetail} />;
+        return <EmployeesPage view={view} filters={filters} onOpenDetail={openDetail} />;
       case 'projects':
         return <ProjectsPage view={view} filters={filters} onOpenDetail={openDetail} />;
       case 'tasks':
         return <TasksPage view={view} onOpenDetail={openDetail} />;
       case 'quality':
-        return <QualityPage view={view} onOpenDetail={openDetail} />;
+        return <QualityPage dataset={dataset} view={view} onOpenDetail={openDetail} />;
       case 'correlation':
         return <CorrelationPage dataset={dataset} view={view} filters={filters} />;
       case 'report':

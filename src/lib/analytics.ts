@@ -1,3 +1,4 @@
+import { analysisConfig } from '../config/analysisConfig';
 import type {
   AnalyticsView,
   AgentIssue,
@@ -18,6 +19,13 @@ import type {
   TopicStat,
 } from '../types';
 import { formatNumber, formatPercent } from './format';
+import {
+  getDataHealthMetric,
+  getFocusScoreMetric,
+  getHighSeverityRateMetric,
+  getMultiProjectRateMetric,
+  getUncategorizedRateMetric,
+} from './metrics';
 
 function dateInRange(date: string, startDate: string, endDate: string) {
   return date >= startDate && date <= endDate;
@@ -108,16 +116,16 @@ function aggregateEmployeeDays(tasks: Task[], dataset: BaseDataset) {
     .map((day) => {
       const projects = projectMap.get(`${day.employeeId}:${day.date}`) ?? new Set();
       const anomalyScore =
-        (day.reportHour >= 9 ? 1 : 0) +
-        (day.taskCount >= 3 ? 1 : 0) +
-        (projects.size >= 3 ? 1 : 0) +
+        (day.reportHour >= analysisConfig.thresholds.anomalyDailyHours ? 1 : 0) +
+        (day.taskCount >= analysisConfig.thresholds.highTaskFragmentationCount ? 1 : 0) +
+        (projects.size >= analysisConfig.thresholds.highProjectSwitchCount ? 1 : 0) +
         (day.verifyHour === 0 && day.reportHour > 0 ? 1 : 0);
 
       return {
         ...day,
         projectCount: projects.size,
         anomalyScore,
-        isAnomalous: anomalyScore >= 2,
+        isAnomalous: anomalyScore >= analysisConfig.thresholds.anomalyScoreThreshold,
       };
     })
     .sort((left, right) => left.date.localeCompare(right.date));
@@ -161,16 +169,9 @@ function computeEmployeeStats(dataset: BaseDataset, employeeDays: EmployeeDay[],
     .map<EmployeeStat>((employee) => {
       const days = employeeDays.filter((day) => day.employeeId === employee.employeeId);
       const employeeTasks = tasks.filter((task) => task.employeeId === employee.employeeId);
-      const projectHours = unique(employeeTasks.map((task) => task.projectName)).map(
-        (projectName) =>
-          sum(
-            employeeTasks
-              .filter((task) => task.projectName === projectName)
-              .map((task) => task.reportHour),
-          ),
-      );
-      const topProjectHours = Math.max(...projectHours, 0);
       const totalHours = sum(days.map((day) => day.reportHour));
+      const multiProjectRateMetric = getMultiProjectRateMetric(days);
+      const focusScoreMetric = getFocusScoreMetric(employeeTasks);
 
       return {
         employeeId: employee.employeeId,
@@ -180,10 +181,8 @@ function computeEmployeeStats(dataset: BaseDataset, employeeDays: EmployeeDay[],
         averageDailyHours: average(days.map((day) => day.reportHour)),
         projectCount: unique(employeeTasks.map((task) => task.projectName)).length,
         taskCount: employeeTasks.length,
-        multiProjectRate: days.length
-          ? days.filter((day) => day.projectCount > 1).length / days.length
-          : 0,
-        focusScore: totalHours ? topProjectHours / totalHours : 0,
+        multiProjectRate: multiProjectRateMetric.value,
+        focusScore: focusScoreMetric.value,
         anomalyDayCount: days.filter((day) => day.isAnomalous).length,
       };
     })
@@ -239,7 +238,10 @@ function computeTopicStats(tasks: Task[]) {
         totalHours: sum(topicTasks.map((task) => task.reportHour)),
         taskCount: topicTasks.length,
         coverageRate: totalTaskCount ? topicTasks.length / totalTaskCount : 0,
-        keywords: unique(topicTasks.flatMap((task) => task.keywordHits)).slice(0, 6),
+        keywords: unique(topicTasks.flatMap((task) => task.keywordHits)).slice(
+          0,
+          analysisConfig.displayLimits.topicKeywordPreview,
+        ),
       };
     })
     .sort((left, right) => right.totalHours - left.totalHours);
@@ -304,41 +306,27 @@ function buildDataHealthSummary(
   qualityFlags: QualityFlag[],
   globalMetrics: GlobalMetrics,
 ): DataHealthSummary {
-  const uncategorizedTaskCount = tasks.filter((task) => task.topicLabel === '未分类').length;
-  const uncategorizedRate = tasks.length ? uncategorizedTaskCount / tasks.length : 0;
+  const uncategorizedRateMetric = getUncategorizedRateMetric(tasks);
   const highSeverityCount = qualityFlags.filter((flag) => flag.severity === 'high').length;
-  const highSeverityRate = qualityFlags.length ? highSeverityCount / qualityFlags.length : 0;
-  const coverageRate = globalMetrics.coverageRate;
-
-  const score = Math.max(
-    0,
-    Math.round(
-      100 -
-        (1 - coverageRate) * 35 -
-        uncategorizedRate * 20 -
-        highSeverityRate * 25 -
-        Math.max(0, 7 - globalMetrics.sampleDays) * 3,
-    ),
-  );
-
-  const status =
-    score >= 78 ? 'healthy' : score >= 55 ? 'watch' : 'risk';
-
-  const summary =
-    status === 'healthy'
-      ? '当前样本可用于描述性分析，但仍应避免把短周期结果直接用于个体判断。'
-      : status === 'watch'
-        ? '当前数据可用于观察趋势和结构，但未分类任务、样本长度或质量缺口会显著影响结论强度。'
-        : '当前数据更适合做线索发现，不适合下稳定结论，应优先补齐质量与时间跨度。';
+  const highSeverityRateMetric = getHighSeverityRateMetric({
+    qualityFlagCount: qualityFlags.length,
+    highSeverityCount,
+  });
+  const healthMetric = getDataHealthMetric({
+    coverageRate: globalMetrics.coverageRate,
+    uncategorizedRate: uncategorizedRateMetric.value,
+    highSeverityRate: highSeverityRateMetric.value,
+    sampleDays: globalMetrics.sampleDays,
+  });
 
   return {
-    score,
-    status,
-    coverageRate,
-    uncategorizedRate,
-    highSeverityRate,
+    score: healthMetric.value,
+    status: healthMetric.status,
+    coverageRate: globalMetrics.coverageRate,
+    uncategorizedRate: uncategorizedRateMetric.value,
+    highSeverityRate: highSeverityRateMetric.value,
     sampleDays: globalMetrics.sampleDays,
-    summary,
+    summary: healthMetric.summary,
   };
 }
 
@@ -428,12 +416,12 @@ function buildAgentReport(
       return map;
     }, new Map<string, { callCount: number; depthScore: number; recordCount: number }>());
 
-  employeeStats.slice(0, 10).forEach((employee) => {
+  employeeStats.slice(0, analysisConfig.displayLimits.topNDefault).forEach((employee) => {
     const evidence: string[] = [];
     const advice: string[] = [];
     let score = 0;
 
-    if (employee.totalHours > avgHours * 1.18) {
+    if (employee.totalHours > avgHours * analysisConfig.thresholds.employeeOverloadHoursMultiplier) {
       evidence.push(
         `总工时 ${formatNumber(employee.totalHours)}h，高于当前筛选人均 ${formatNumber(avgHours)}h。`,
       );
@@ -441,7 +429,7 @@ function buildAgentReport(
       score += 2;
     }
 
-    if (employee.multiProjectRate >= 0.34) {
+    if (employee.multiProjectRate >= analysisConfig.thresholds.highMultiProjectRate) {
       evidence.push(
         `多项目切换率 ${formatPercent(employee.multiProjectRate)}，存在上下文切换损耗。`,
       );
@@ -449,7 +437,10 @@ function buildAgentReport(
       score += 2;
     }
 
-    if (employee.focusScore <= 0.58 && employee.projectCount >= 3) {
+    if (
+      employee.focusScore <= analysisConfig.thresholds.lowFocusScore &&
+      employee.projectCount >= analysisConfig.thresholds.highProjectSwitchCount
+    ) {
       evidence.push(
         `工时集中度 ${formatPercent(employee.focusScore)}，项目分散到 ${employee.projectCount} 个方向。`,
       );
@@ -457,7 +448,7 @@ function buildAgentReport(
       score += 1;
     }
 
-    if (employee.anomalyDayCount >= 2) {
+    if (employee.anomalyDayCount >= analysisConfig.thresholds.employeeIssueAnomalyDays) {
       evidence.push(`异常员工日 ${employee.anomalyDayCount} 天，建议结合每日任务切分复核。`);
       advice.push('让项目经理复盘异常日的任务拆分是否过碎，是否存在临时插单。');
       score += 2;
@@ -466,7 +457,10 @@ function buildAgentReport(
     const ai = aiByEmployee.get(employee.employeeId);
     if (ai && ai.recordCount > 0) {
       const avgDepth = ai.depthScore / ai.recordCount;
-      if (avgDepth < 64 && ai.callCount >= 18) {
+      if (
+        avgDepth < analysisConfig.thresholds.aiLowDepthScore &&
+        ai.callCount >= analysisConfig.thresholds.aiHighCallCount
+      ) {
         evidence.push(
           `AI 调用较频繁（${ai.callCount} 次），但平均深度仅 ${formatNumber(avgDepth)}，提示可能存在浅层反复提问。`,
         );
@@ -475,11 +469,12 @@ function buildAgentReport(
       }
     }
 
-    if (score >= 3) {
+    if (score >= analysisConfig.thresholds.employeeIssueScoreThreshold) {
       issues.push({
         id: `employee-${employee.employeeId}`,
         title: '员工负载异常',
-        severity: score >= 5 ? 'high' : 'medium',
+        severity:
+          score >= analysisConfig.thresholds.employeeHighSeverityScore ? 'high' : 'medium',
         scope: 'employee',
         subject: employee.name,
         subjectMasked: employee.name,
@@ -492,12 +487,15 @@ function buildAgentReport(
     }
   });
 
-  projectStats.slice(0, 8).forEach((project) => {
+  projectStats.slice(0, analysisConfig.displayLimits.projectPrimary).forEach((project) => {
     const evidence: string[] = [];
     const advice: string[] = [];
     let score = 0;
 
-    if (project.participantCount >= 4 && project.averageHoursPerPerson <= 8) {
+    if (
+      project.participantCount >= analysisConfig.thresholds.projectWideParticipationCount &&
+      project.averageHoursPerPerson <= analysisConfig.thresholds.projectLowAverageHoursPerPerson
+    ) {
       evidence.push(
         `参与人数 ${project.participantCount} 较多，但人均投入仅 ${formatNumber(project.averageHoursPerPerson)}h。`,
       );
@@ -505,13 +503,13 @@ function buildAgentReport(
       score += 1;
     }
 
-    if (project.trendSlope >= 2.2) {
+    if (project.trendSlope >= analysisConfig.thresholds.projectHighTrendSlope) {
       evidence.push(`工时趋势斜率 ${formatNumber(project.trendSlope)}，近期投入抬升明显。`);
       advice.push('结合里程碑或风险点确认是正常冲刺还是返工前兆。');
       score += 2;
     }
 
-    if (project.topicDiversity >= 4) {
+    if (project.topicDiversity >= analysisConfig.thresholds.projectHighTopicDiversity) {
       evidence.push(`主题复杂度 ${project.topicDiversity}，同一项目同时覆盖较多工作类型。`);
       advice.push('将设计、开发、联调、文档拆成阶段目标，减少同周期混跑。');
       score += 1;
@@ -524,18 +522,19 @@ function buildAgentReport(
     );
     if (feedbackRows.length) {
       const avgScore = average(feedbackRows.map((item) => item.score));
-      if (avgScore < 4) {
+      if (avgScore < analysisConfig.thresholds.lowFeedbackScore) {
         evidence.push(`反馈 mock 平均评分 ${formatNumber(avgScore)}，需关注投入与用户结果错位。`);
         advice.push('优先把工时投向稳定性和体验问题，而不是继续摊薄在低优先事项。');
         score += 1;
       }
     }
 
-    if (score >= 2) {
+    if (score >= analysisConfig.thresholds.projectIssueScoreThreshold) {
       issues.push({
         id: `project-${project.projectName}`,
         title: '项目投入风险',
-        severity: score >= 4 ? 'high' : 'medium',
+        severity:
+          score >= analysisConfig.thresholds.projectHighSeverityScore ? 'high' : 'medium',
         scope: 'project',
         subject: project.projectName,
         subjectMasked: project.projectName,
@@ -574,7 +573,8 @@ function buildAgentReport(
   issues.sort((left, right) => right.score - left.score);
 
   const overloadedPeople = employeeStats.filter(
-    (employee) => employee.totalHours > avgHours * 1.18,
+    (employee) =>
+      employee.totalHours > avgHours * analysisConfig.thresholds.employeeOverloadHoursMultiplier,
   ).length;
   const fragmentedDays = employeeDays.filter(
     (day) => day.taskCount > avgFragmentation || day.projectCount > 1,
@@ -616,15 +616,15 @@ function buildAgentReport(
     `样本范围：${filters.startDate} 到 ${filters.endDate}。`,
     `全局指标：总工时 ${formatNumber(globalMetrics.totalHours)}，活跃员工 ${globalMetrics.activeEmployees}，异常员工日占比 ${formatPercent(globalMetrics.anomalyDayRate)}。`,
     `主要异常：${issues
-      .slice(0, 5)
+      .slice(0, analysisConfig.displayLimits.llmIssuePreview)
       .map((issue) => `${issue.subject} - ${issue.summary}`)
       .join('；')}`,
     `质量限制：${qualityFlags
-      .slice(0, 5)
+      .slice(0, analysisConfig.displayLimits.llmQualityPreview)
       .map((flag) => flag.message)
       .join('；')}`,
     `任务主题 Top：${tasks
-      .slice(0, 10)
+      .slice(0, analysisConfig.displayLimits.llmTaskPreview)
       .map((task) => `${task.projectName}/${task.topicLabel}/${task.reportHour}h`)
       .join('；')}`,
     '请输出：1. 异常综述 2. 员工侧风险 3. 项目侧风险 4. 下周优化建议 5. 需要补采的数据。',

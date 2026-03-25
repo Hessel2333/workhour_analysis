@@ -4,27 +4,25 @@ import type { PageKey } from '../types';
 export const PRIMARY_NAV_ITEMS: Array<{
   key: PageKey;
   label: string;
-  hint: string;
   icon: string;
 }> = [
-  { key: 'overview', label: '总览', hint: '投入与趋势', icon: '📊' },
-  { key: 'agent', label: '智能分析', hint: '规则诊断与 Gemini', icon: '🤖' },
-  { key: 'employees', label: '员工视图', hint: '工时热图与碎片化', icon: '👥' },
-  { key: 'projects', label: '项目视图', hint: '投入构成与波动', icon: '🏗️' },
-  { key: 'tasks', label: '任务洞察', hint: '主题、关键词与明细', icon: '📋' },
-  { key: 'quality', label: '数据质量', hint: '缺口、异常与提醒', icon: '🛡️' },
-  { key: 'correlation', label: '相关性实验室', hint: '相关性与协同 mock', icon: '🧪' },
-  { key: 'report', label: '报告', hint: '管理层摘要与导出', icon: '📄' },
+  { key: 'overview', label: '总览', icon: '📊' },
+  { key: 'agent', label: '智能分析', icon: '🤖' },
+  { key: 'employees', label: '员工视图', icon: '👥' },
+  { key: 'projects', label: '项目视图', icon: '🏗️' },
+  { key: 'tasks', label: '任务洞察', icon: '📋' },
+  { key: 'quality', label: '数据质量', icon: '🛡️' },
+  { key: 'correlation', label: '相关性实验室', icon: '🧪' },
+  { key: 'report', label: '报告', icon: '📄' },
 ];
 
 export const SECONDARY_NAV_ITEMS: Array<{
   key: PageKey;
   label: string;
-  hint: string;
   icon: string;
 }> = [
-  { key: 'settings', label: '设置', hint: '文件与工时制', icon: '⚙️' },
-  { key: 'methods', label: '方法说明', hint: '口径、公式与边界', icon: '📘' },
+  { key: 'settings', label: '设置', icon: '⚙️' },
+  { key: 'methods', label: '方法说明', icon: '📘' },
 ];
 
 interface SidebarProps {
@@ -38,9 +36,7 @@ export function Sidebar({ activePage, onChange }: SidebarProps) {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <span className="sidebar-eyebrow">Workhour Intelligence</span>
-        <h1>工时分析工作台</h1>
-        <p>本地样本驱动的研发效能观察台</p>
+        <h1>工时分析</h1>
       </div>
       <nav className="sidebar-nav">
         {PRIMARY_NAV_ITEMS.map((item) => (
@@ -52,7 +48,6 @@ export function Sidebar({ activePage, onChange }: SidebarProps) {
             data-icon={item.icon}
           >
             <span>{item.label}</span>
-            <small>{item.hint}</small>
           </button>
         ))}
       </nav>
@@ -66,7 +61,6 @@ export function Sidebar({ activePage, onChange }: SidebarProps) {
             data-icon={item.icon}
           >
             <span>{item.label}</span>
-            <small>{item.hint}</small>
           </button>
         ))}
 

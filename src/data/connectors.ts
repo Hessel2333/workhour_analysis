@@ -1,3 +1,4 @@
+import { analysisConfig } from '../config/analysisConfig';
 import type {
   AiUsageMetric,
   ConnectorBundle,
@@ -10,13 +11,16 @@ export function buildMockConnectors(
   employeeIds: string[],
   dateLabels: string[],
 ): ConnectorBundle {
+  if (!analysisConfig.ruleToggles.showMockCharts) {
+    return { git: [], ai: [], feedback: [] };
+  }
   const git: GitMetric[] = [];
   const ai: AiUsageMetric[] = [];
   const feedback: FeedbackMetric[] = [];
 
-  const activeProjects = projectNames.slice(0, 6);
-  const activeEmployees = employeeIds.slice(0, 8);
-  const dates = dateLabels.slice(0, 6);
+  const activeProjects = projectNames.slice(0, analysisConfig.displayLimits.overviewTopProjects);
+  const activeEmployees = employeeIds.slice(0, analysisConfig.displayLimits.employeeRank);
+  const dates = dateLabels.slice(0, analysisConfig.displayLimits.overviewTopProjects);
 
   activeProjects.forEach((projectName, projectIndex) => {
     dates.forEach((date, dateIndex) => {
@@ -47,22 +51,24 @@ export function buildMockConnectors(
   });
 
   activeProjects.forEach((projectName, projectIndex) => {
-    activeEmployees.slice(0, 5).forEach((employeeId, employeeIndex) => {
-      dates.forEach((date, dateIndex) => {
-        if ((projectIndex + employeeIndex + dateIndex) % 2 === 0) {
-          git.push({
-            projectName,
-            employeeId,
-            date,
-            commitCount: 1 + ((projectIndex + employeeIndex + dateIndex) % 5),
-            locAdded: 45 + projectIndex * 18 + employeeIndex * 12,
-            locDeleted: 15 + dateIndex * 10,
-            prCount: 1 + ((employeeIndex + dateIndex) % 2),
-            reviewHours: 0.8 + ((projectIndex + dateIndex) % 4) * 0.6,
-          });
-        }
+    activeEmployees
+      .slice(0, analysisConfig.displayLimits.projectTierSize)
+      .forEach((employeeId, employeeIndex) => {
+        dates.forEach((date, dateIndex) => {
+          if ((projectIndex + employeeIndex + dateIndex) % 2 === 0) {
+            git.push({
+              projectName,
+              employeeId,
+              date,
+              commitCount: 1 + ((projectIndex + employeeIndex + dateIndex) % 5),
+              locAdded: 45 + projectIndex * 18 + employeeIndex * 12,
+              locDeleted: 15 + dateIndex * 10,
+              prCount: 1 + ((employeeIndex + dateIndex) % 2),
+              reviewHours: 0.8 + ((projectIndex + dateIndex) % 4) * 0.6,
+            });
+          }
+        });
       });
-    });
   });
 
   return { git, ai, feedback };

@@ -46,7 +46,7 @@ export function ChartPanel({
   const [showDetails, setShowDetails] = useState(false);
   const sourceLabelMap = {
     real: '真实工时',
-    mock: '示意数据',
+    mock: '模拟来源',
     derived: '规则推导',
     model: '模型生成',
   } as const;
@@ -65,7 +65,7 @@ export function ChartPanel({
       subtitle={subtitle}
       note={showDetails ? note : undefined}
       badge={
-        badge || (source === 'mock' ? '示意数据' : undefined)
+        badge || (source === 'mock' ? '模拟来源' : undefined)
       }
       actions={
         <>
@@ -85,7 +85,11 @@ export function ChartPanel({
         showDetails || source === 'mock' ? (
           <div className="chart-meta">
             <MetaPill tone={source === 'mock' ? 'warning' : source}>{sourceLabelMap[source as keyof typeof sourceLabelMap]}</MetaPill>
-            {source === 'mock' && <span style={{ color: 'var(--color-warning)', fontWeight: 600 }}>⚠️ 当前为生成数据，仅供示意</span>}
+            {source === 'mock' ? (
+              <span className="chart-meta-warning">
+                当前图表来自模拟数据，仅用于接口与分析框架验证
+              </span>
+            ) : null}
             {showDetails && method ? <span>方法：{method}</span> : null}
             {showDetails && reliability ? <span>可靠性：{reliability}</span> : null}
             {showDetails && caution ? <span>注意：{caution}</span> : null}

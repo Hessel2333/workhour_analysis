@@ -2,10 +2,13 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ChartPanel } from '../components/ChartPanel';
 import { CollapsiblePanel } from '../components/CollapsiblePanel';
 import { DataTable } from '../components/DataTable';
+import { MetaPill } from '../components/MetaPill';
 import { Panel } from '../components/Panel';
+import { analysisConfig } from '../config/analysisConfig';
 import { topicColor } from '../lib/chartColors';
 import { formatNumber, formatPercent } from '../lib/format';
 import { classifyTaskWorkstream, WORKSTREAM_ORDER } from '../lib/taskSignals';
+import { buildTopicExplanation } from '../lib/topicExplain';
 import type { AnalyticsView, DetailSelection } from '../types';
 
 interface TasksPageProps {
@@ -13,12 +16,39 @@ interface TasksPageProps {
   onOpenDetail: (detail: DetailSelection) => void;
 }
 
+function TopicExplanationCell({
+  task,
+  compact = false,
+}: {
+  task: AnalyticsView['tasks'][number];
+  compact?: boolean;
+}) {
+  const explanation = buildTopicExplanation(task);
+
+  return (
+    <div className={`topic-explain ${compact ? 'compact' : ''}`.trim()}>
+      <div className="topic-explain-topline">
+        <strong>{explanation.ruleLabel}</strong>
+        <MetaPill tone={explanation.usedFallback ? 'warning' : 'derived'}>
+          {explanation.usedFallback ? 'Fallback' : '规则命中'}
+        </MetaPill>
+      </div>
+      <span>
+        可信度 {formatPercent(explanation.confidence)}
+        {explanation.matchedKeywords.length
+          ? ` · 关键词 ${explanation.matchedKeywords.join(' / ')}`
+          : ' · 当前无稳定关键词'}
+      </span>
+    </div>
+  );
+}
+
 export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
   const reviewTasks = view.tasks.filter(
     (task) =>
       task.topicLabel === '未分类' ||
       task.topicLabel === '待确认' ||
-      task.topicConfidence < 0.9,
+      task.topicConfidence < analysisConfig.thresholds.lowTopicConfidence,
   );
   const uncategorizedCount = view.tasks.filter((task) => task.topicLabel === '未分类').length;
   const pendingCount = view.tasks.filter((task) => task.topicLabel === '待确认').length;
@@ -26,7 +56,7 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
     (task) =>
       task.topicLabel !== '未分类' &&
       task.topicLabel !== '待确认' &&
-      task.topicConfidence < 0.9,
+      task.topicConfidence < analysisConfig.thresholds.lowTopicConfidence,
   ).length;
   const pendingTasks = view.tasks.filter((task) => task.topicLabel === '待确认');
   const reviewTasksWithoutPending = reviewTasks.filter((task) => task.topicLabel !== '待确认');
@@ -44,7 +74,7 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
   const topicOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
-    xAxis: { type: 'value' },
+    xAxis: { type: 'value', name: '总工时（h）' },
     yAxis: { type: 'category', data: view.topicStats.map((item) => item.topicLabel) },
     series: [
       {
@@ -127,13 +157,13 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
     }, new Map<string, number>()),
   )
     .sort((left, right) => right[1] - left[1])
-    .slice(0, 12);
+    .slice(0, analysisConfig.displayLimits.taskKeywordCount);
 
   const keywordOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'category', data: keywordEntries.map(([keyword]) => keyword) },
-    yAxis: { type: 'value' },
+    yAxis: { type: 'value', name: '工时' },
     series: [
       {
         type: 'bar',
@@ -168,11 +198,19 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
       cell: ({ row }) => formatPercent(row.original.topicConfidence),
     },
     {
-      header: '原因',
-      cell: ({ row }) =>
-        row.original.topicLabel === '未分类'
-          ? '未命中规则词典'
-          : `关键词：${row.original.keywordHits.join(' / ') || '规则命中较弱'}`,
+      header: '分类命中详情',
+      cell: ({ row }) => <TopicExplanationCell task={row.original} compact />,
+    },
+  ];
+
+  const explanationColumns: Array<ColumnDef<(typeof view.tasks)[number]>> = [
+    { header: '日期', accessorKey: 'date' },
+    { header: '项目', accessorKey: 'projectName' },
+    { header: '任务名称', accessorKey: 'taskName' },
+    { header: '当前分类', accessorKey: 'topicLabel' },
+    {
+      header: '分类命中详情',
+      cell: ({ row }) => <TopicExplanationCell task={row.original} />,
     },
   ];
 
@@ -191,6 +229,25 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
               ? `建设型工时 ${formatNumber(buildLikeHours)}h，修补型工时 ${formatNumber(reworkLikeHours)}h。先看整体画像，再回看复核清单。`
               : `当前共 ${view.tasks.length} 条任务，未分类 ${uncategorizedCount} 条，待确认 ${pendingCount} 条，低可信度 ${lowConfidenceCount} 条。`}
           </span>
+        </div>
+      </Panel>
+
+      <Panel
+        title="分类解释"
+        subtitle="现在可以直接看到任务是怎么被归类的"
+        note="分类命中详情会展示命中规则名、关键词、可信度，以及是否走了 fallback 兜底。"
+        className="panel-wide panel-strip"
+        meta={
+          <div className="chart-meta">
+            <MetaPill tone="derived">规则词典</MetaPill>
+            <span>可复核字段：规则名 / 关键词 / 可信度 / fallback</span>
+            <span>建议优先处理待确认、未分类和低可信度任务</span>
+          </div>
+        }
+      >
+        <div className="callout">
+          <strong>点击任一任务后，可以继续在任务聚焦页查看完整分类说明和关联上下文。</strong>
+          <span>这轮改动的目标不是让分类“看起来更聪明”，而是让它能被复核、能被修正。</span>
         </div>
       </Panel>
 
@@ -260,6 +317,27 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
         <DataTable
           columns={reviewColumns}
           data={reviewTasksWithoutPending}
+          onRowClick={(task) =>
+            onOpenDetail({
+              kind: 'task',
+              title: '任务聚焦分析',
+              subtitle: task.taskName,
+              taskId: task.taskId,
+              rows: [],
+            })
+          }
+        />
+      </CollapsiblePanel>
+
+      <CollapsiblePanel
+        title="分类命中详情"
+        subtitle="逐条查看任务到底命中了哪条规则"
+        note="这里会同时显示规则名、关键词和 fallback 状态，适合给规则词典做增补。点击行可直接打开任务详情。"
+        defaultOpen={view.tasks.length <= 16}
+      >
+        <DataTable
+          columns={explanationColumns}
+          data={view.tasks}
           onRowClick={(task) =>
             onOpenDetail({
               kind: 'task',

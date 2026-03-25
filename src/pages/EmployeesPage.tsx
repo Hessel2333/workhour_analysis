@@ -1,28 +1,27 @@
+import { useState } from 'react';
 import { ChartPanel } from '../components/ChartPanel';
 import { MetaPill } from '../components/MetaPill';
 import { Panel } from '../components/Panel';
+import { TrendGranularitySwitch } from '../components/TrendGranularitySwitch';
+import { analysisConfig } from '../config/analysisConfig';
 import { topicColor } from '../lib/chartColors';
 import { formatNumber, formatPercent } from '../lib/format';
+import { getEmployeeRiskMetric, getFirefightingMetric, getFocusScoreMetric } from '../lib/metrics';
 import { isReworkTask } from '../lib/taskSignals';
 import {
   buildGranularityLabels,
   fillGroupedSeries,
+  granularityBucketLabel,
   groupSeriesByGranularity,
+  trendGranularityLabel,
+  type TrendGranularity,
 } from '../lib/timeSeries';
-import type { AnalyticsView, DetailSelection } from '../types';
+import type { AnalyticsView, DetailSelection, Filters } from '../types';
 
 interface EmployeesPageProps {
   view: AnalyticsView;
+  filters: Filters;
   onOpenDetail: (detail: DetailSelection) => void;
-}
-
-function employeeRiskScore(employee: AnalyticsView['employeeStats'][number]) {
-  return (
-    employee.multiProjectRate * 45 +
-    (1 - employee.focusScore) * 30 +
-    employee.anomalyDayCount * 6 +
-    Math.min(employee.taskCount / 40, 1) * 19
-  );
 }
 
 function bubbleSizeByAnomalyDays(days: number) {
@@ -74,29 +73,69 @@ function buildBoxplotStats(values: number[]) {
   };
 }
 
-export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
+function longestConsecutive(values: boolean[]) {
+  let longest = 0;
+  let current = 0;
+  values.forEach((value) => {
+    if (value) {
+      current += 1;
+      longest = Math.max(longest, current);
+      return;
+    }
+    current = 0;
+  });
+  return longest;
+}
+
+export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProps) {
+  const [monthTrendGranularity, setMonthTrendGranularity] = useState<'day' | 'week'>('day');
+  const [loadCalendarMode, setLoadCalendarMode] = useState<'hours' | 'risk' | 'anomaly'>('hours');
+  const trendGranularity: TrendGranularity =
+    filters.periodMode === 'month' ? monthTrendGranularity : 'month';
+  const trendLabel = trendGranularityLabel(trendGranularity);
+  const canSwitchTrendGranularity = filters.periodMode === 'month';
+  const trendLabels = buildGranularityLabels(
+    view.uniqueDates[0] ?? '',
+    view.uniqueDates[view.uniqueDates.length - 1] ?? '',
+    trendGranularity,
+  );
   const topRiskEmployees = [...view.employeeStats]
-    .sort((left, right) => employeeRiskScore(right) - employeeRiskScore(left))
-    .slice(0, 8);
+    .sort(
+      (left, right) =>
+        getEmployeeRiskMetric(right).value - getEmployeeRiskMetric(left).value,
+    )
+    .slice(0, analysisConfig.displayLimits.employeeRank);
   const topSwitchEmployees = [...view.employeeStats]
     .sort((left, right) => {
       const leftScore = left.multiProjectRate * 100 + left.projectCount * 4 + left.totalHours / 40;
       const rightScore = right.multiProjectRate * 100 + right.projectCount * 4 + right.totalHours / 40;
       return rightScore - leftScore;
     })
-    .slice(0, 8);
-  const topHoursEmployees = [...view.employeeStats].slice(0, 8);
+    .slice(0, analysisConfig.displayLimits.employeeRank);
+  const topHoursEmployees = [...view.employeeStats].slice(0, analysisConfig.displayLimits.employeeRank);
   const focusedEmployees = [...view.employeeStats]
     .sort((left, right) => right.focusScore - left.focusScore)
-    .slice(0, 8);
-  const monthLabels = buildGranularityLabels(
-    view.uniqueDates[0] ?? '',
-    view.uniqueDates[view.uniqueDates.length - 1] ?? '',
-    'month',
-  );
-  const topMonthlyEmployees = [...view.employeeStats].slice(0, 6);
-  const topHeatmapEmployees = [...view.employeeStats].slice(0, 10);
-  const topHeatmapProjects = [...view.projectStats].slice(0, 10).map((item) => item.projectName);
+    .slice(0, analysisConfig.displayLimits.employeeRank);
+  const trendGranularityActions = canSwitchTrendGranularity ? (
+    <TrendGranularitySwitch
+      value={monthTrendGranularity}
+      onChange={setMonthTrendGranularity}
+      ariaLabel="员工趋势聚合粒度"
+    />
+  ) : undefined;
+  const topMonthlyEmployees = [...view.employeeStats].slice(0, analysisConfig.displayLimits.employeeTrendEmployees);
+  const topHeatmapEmployees = [...view.employeeStats].slice(0, analysisConfig.displayLimits.employeeHeatmapEmployees);
+  const topHeatmapProjects = [...view.projectStats]
+    .slice(0, analysisConfig.displayLimits.employeeHeatmapProjects)
+    .map((item) => item.projectName);
+  const bucketTitle =
+    trendGranularity === 'day' ? '日期' : trendGranularity === 'week' ? '周次' : '月份';
+  const topLoadEmployees = [...view.employeeStats]
+    .sort(
+      (left, right) =>
+        getEmployeeRiskMetric(right).value - getEmployeeRiskMetric(left).value,
+    )
+    .slice(0, analysisConfig.displayLimits.employeeHeatmapEmployees);
   const employeeFireStats = view.employeeStats.map((employee) => {
     const tasks = view.tasks.filter((task) => task.employeeId === employee.employeeId);
     const totalHours = tasks.reduce((sum, task) => sum + task.reportHour, 0);
@@ -106,22 +145,25 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
     const supportHours = tasks
       .filter((task) => task.topicLabel === '现场支持')
       .reduce((sum, task) => sum + task.reportHour, 0);
+    const fireMetric = getFirefightingMetric({
+      totalHours,
+      reworkHours,
+      supportHours,
+      multiProjectRate: employee.multiProjectRate,
+      anomalyDayCount: employee.anomalyDayCount,
+    });
     return {
       ...employee,
       reworkHours,
-      reworkShare: totalHours ? reworkHours / totalHours : 0,
+      reworkShare: fireMetric.reworkShare,
       supportHours,
-      supportShare: totalHours ? supportHours / totalHours : 0,
-      fireScore:
-        (totalHours ? reworkHours / totalHours : 0) * 44 +
-        (totalHours ? supportHours / totalHours : 0) * 22 +
-        employee.multiProjectRate * 20 +
-        Math.min(employee.anomalyDayCount / 8, 1) * 14,
+      supportShare: fireMetric.supportShare,
+      fireScore: fireMetric.value,
     };
   });
   const topFireEmployees = [...employeeFireStats]
     .sort((left, right) => right.fireScore - left.fireScore)
-    .slice(0, 8);
+    .slice(0, analysisConfig.displayLimits.employeeRank);
 
   const riskScatterOption = {
     tooltip: {
@@ -160,7 +202,7 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
   const hoursBarOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
-    xAxis: { type: 'value' },
+    xAxis: { type: 'value', name: '总工时（h）' },
     yAxis: { type: 'category', data: topHoursEmployees.map((item) => item.name) },
     series: [
       {
@@ -174,7 +216,7 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
   const focusBarOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
-    xAxis: { type: 'value', max: 100 },
+    xAxis: { type: 'value', name: '聚焦度', max: 100, axisLabel: { formatter: '{value}%' } },
     yAxis: { type: 'category', data: focusedEmployees.map((item) => item.name) },
     series: [
       {
@@ -189,7 +231,7 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: { top: 0 },
     grid: { left: 24, right: 20, top: 48, bottom: 40, containLabel: true },
-    xAxis: { type: 'value', max: 100 },
+    xAxis: { type: 'value', name: '工时占比', max: 100, axisLabel: { formatter: '{value}%' } },
     yAxis: { type: 'category', data: topRiskEmployees.map((item) => item.name) },
     series: ['开发', '维护', '现场支持', '会议'].map((topic, index) => ({
       name: topic,
@@ -211,23 +253,23 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
     })),
   };
 
-  const monthlyHoursOption = {
+  const employeeTrendOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: { top: 0 },
     grid: { left: 24, right: 20, top: 48, bottom: 40, containLabel: true },
-    xAxis: { type: 'category', data: monthLabels },
+    xAxis: { type: 'category', data: trendLabels },
     yAxis: { type: 'value', name: '工时' },
     series: topMonthlyEmployees.map((employee, index) => ({
       name: employee.name,
       type: 'bar',
-      stack: 'monthlyEmployeeHours',
+      stack: 'employeeHours',
       data: fillGroupedSeries(
-        monthLabels,
+        trendLabels,
         groupSeriesByGranularity(
           view.employeeDays
             .filter((day) => day.employeeId === employee.employeeId)
             .map((day) => ({ date: day.date, value: day.reportHour })),
-          'month',
+          trendGranularity,
         ),
       ).map((item) => item.value),
       itemStyle: { borderRadius: 6, color: ['#2563eb', '#0ea5e9', '#14b8a6', '#22c55e', '#f59e0b', '#8b5cf6'][index] },
@@ -239,31 +281,33 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
     { distinctProjects: number; totalHours: number; averageProjectCount: number }
   >();
   topSwitchEmployees.forEach((employee) => {
-    monthLabels.forEach((monthLabel) => {
-      const monthlyTasks = view.tasks.filter(
+    trendLabels.forEach((bucketLabel) => {
+      const bucketTasks = view.tasks.filter(
         (task) =>
-          task.employeeId === employee.employeeId && task.date.startsWith(`${monthLabel}-`),
+          task.employeeId === employee.employeeId &&
+          granularityBucketLabel(task.date, trendGranularity) === bucketLabel,
       );
-      const monthlyDays = view.employeeDays.filter(
+      const bucketDays = view.employeeDays.filter(
         (day) =>
-          day.employeeId === employee.employeeId && day.date.startsWith(`${monthLabel}-`),
+          day.employeeId === employee.employeeId &&
+          granularityBucketLabel(day.date, trendGranularity) === bucketLabel,
       );
-      monthlySwitchMeta.set(`${employee.employeeId}:${monthLabel}`, {
-        distinctProjects: new Set(monthlyTasks.map((task) => task.projectName)).size,
-        totalHours: monthlyTasks.reduce((sum, task) => sum + task.reportHour, 0),
+      monthlySwitchMeta.set(`${employee.employeeId}:${bucketLabel}`, {
+        distinctProjects: new Set(bucketTasks.map((task) => task.projectName)).size,
+        totalHours: bucketTasks.reduce((sum, task) => sum + task.reportHour, 0),
         averageProjectCount:
-          monthlyDays.length > 0
-            ? monthlyDays.reduce((sum, day) => sum + day.projectCount, 0) / monthlyDays.length
+          bucketDays.length > 0
+            ? bucketDays.reduce((sum, day) => sum + day.projectCount, 0) / bucketDays.length
             : 0,
       });
     });
   });
 
   const monthlySwitchData = topSwitchEmployees.flatMap((employee, employeeIndex) =>
-    monthLabels.map((monthLabel, monthIndex) => [
-      monthIndex,
+    trendLabels.map((bucketLabel, bucketIndex) => [
+      bucketIndex,
       employeeIndex,
-      monthlySwitchMeta.get(`${employee.employeeId}:${monthLabel}`)?.distinctProjects ?? 0,
+      monthlySwitchMeta.get(`${employee.employeeId}:${bucketLabel}`)?.distinctProjects ?? 0,
     ]),
   );
   const monthlySwitchMax = Math.max(...monthlySwitchData.map((item) => Number(item[2])), 0);
@@ -273,19 +317,19 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
       formatter: (params: { value?: Array<string | number> }) => {
         const value = params.value ?? [];
         const employee = topSwitchEmployees[Number(value[1] ?? 0)];
-        const monthLabel = monthLabels[Number(value[0] ?? 0)] ?? '';
-        const meta = monthlySwitchMeta.get(`${employee?.employeeId ?? ''}:${monthLabel}`);
+        const bucketLabel = trendLabels[Number(value[0] ?? 0)] ?? '';
+        const meta = monthlySwitchMeta.get(`${employee?.employeeId ?? ''}:${bucketLabel}`);
         return [
           `<strong>${employee?.name ?? ''}</strong>`,
-          `月份：${monthLabel}`,
+          `${bucketTitle}：${bucketLabel}`,
           `参与项目数：${meta?.distinctProjects ?? 0}`,
-          `月总工时：${formatNumber(meta?.totalHours ?? 0)} h`,
+          `${trendLabel}总工时：${formatNumber(meta?.totalHours ?? 0)} h`,
           `日均项目数：${formatNumber(meta?.averageProjectCount ?? 0, 1)}`,
         ].join('<br/>');
       },
     },
-    grid: { left: 84, right: 24, top: 24, bottom: 36, containLabel: true },
-    xAxis: { type: 'category', data: monthLabels },
+    grid: { left: 60, right: 24, top: 24, bottom: 36, containLabel: true },
+    xAxis: { type: 'category', data: trendLabels },
     yAxis: { type: 'category', data: topSwitchEmployees.map((item) => item.name) },
     visualMap: {
       min: 0,
@@ -314,7 +358,10 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
     ],
   };
 
-  const boxplotEmployees = [...view.employeeStats].slice(0, 10);
+  const boxplotEmployees = [...view.employeeStats].slice(
+    0,
+    analysisConfig.displayLimits.employeeBoxplot,
+  );
   const boxplotStats = boxplotEmployees.map((employee) => {
     const values = view.employeeDays
       .filter((day) => day.employeeId === employee.employeeId)
@@ -421,7 +468,7 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
         ].join('<br/>');
       },
     },
-    grid: { left: 90, right: 24, top: 24, bottom: 36, containLabel: true },
+    grid: { left: 64, right: 24, top: 24, bottom: 36, containLabel: true },
     xAxis: {
       type: 'category',
       data: topHeatmapProjects,
@@ -450,6 +497,182 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
       },
     ],
   };
+
+  const loadCalendarMeta = new Map<
+    string,
+    {
+      totalHours: number;
+      riskScore: number;
+      anomalyCount: number;
+      anomalyDayCount: number;
+      taskCount: number;
+      multiProjectRate: number;
+      focusScore: number;
+      activeDays: number;
+    }
+  >();
+  topLoadEmployees.forEach((employee) => {
+    trendLabels.forEach((bucketLabel) => {
+      const bucketDays = view.employeeDays.filter(
+        (day) =>
+          day.employeeId === employee.employeeId &&
+          granularityBucketLabel(day.date, trendGranularity) === bucketLabel,
+      );
+      const bucketTasks = view.tasks.filter(
+        (task) =>
+          task.employeeId === employee.employeeId &&
+          granularityBucketLabel(task.date, trendGranularity) === bucketLabel,
+      );
+      const anomalyDayCount = bucketDays.filter((day) => day.isAnomalous).length;
+      const totalHours = bucketDays.reduce((sum, day) => sum + day.reportHour, 0);
+      const multiProjectRate = bucketDays.length
+        ? bucketDays.filter((day) => day.projectCount > 1).length / bucketDays.length
+        : 0;
+      const focusScore = bucketTasks.length ? getFocusScoreMetric(bucketTasks).value : 0;
+      const riskScore = getEmployeeRiskMetric({
+        multiProjectRate,
+        focusScore,
+        anomalyDayCount,
+        taskCount: bucketTasks.length,
+      }).value;
+      loadCalendarMeta.set(`${employee.employeeId}:${bucketLabel}`, {
+        totalHours,
+        riskScore,
+        anomalyCount: bucketDays.reduce((sum, day) => sum + day.anomalyScore, 0),
+        anomalyDayCount,
+        taskCount: bucketTasks.length,
+        multiProjectRate,
+        focusScore,
+        activeDays: bucketDays.length,
+      });
+    });
+  });
+  const loadCalendarValueByMode = (bucketLabel: string, employeeId: string) => {
+    const meta = loadCalendarMeta.get(`${employeeId}:${bucketLabel}`);
+    if (!meta) return 0;
+    if (loadCalendarMode === 'risk') return Number(meta.riskScore.toFixed(1));
+    if (loadCalendarMode === 'anomaly') return meta.anomalyCount;
+    return Number(meta.totalHours.toFixed(1));
+  };
+  const loadCalendarData = topLoadEmployees.flatMap((employee, employeeIndex) =>
+    trendLabels.map((bucketLabel, bucketIndex) => [
+      bucketIndex,
+      employeeIndex,
+      loadCalendarValueByMode(bucketLabel, employee.employeeId),
+    ]),
+  );
+  const loadCalendarMax = Math.max(...loadCalendarData.map((item) => Number(item[2])), 0);
+  const loadCalendarColors =
+    loadCalendarMode === 'risk'
+      ? ['#fff7ed', '#fdba74', '#f97316', '#c2410c']
+      : loadCalendarMode === 'anomaly'
+        ? ['#ecfeff', '#67e8f9', '#06b6d4', '#155e75']
+        : ['#eff6ff', '#93c5fd', '#2563eb', '#1d4ed8'];
+  const loadCalendarUnit =
+    loadCalendarMode === 'risk' ? '分' : loadCalendarMode === 'anomaly' ? '个' : 'h';
+  const loadCalendarLabel =
+    loadCalendarMode === 'risk' ? '风险分' : loadCalendarMode === 'anomaly' ? '异常数' : '总工时';
+  const loadCalendarOption = {
+    tooltip: {
+      position: 'top',
+      formatter: (params: { value?: Array<string | number> }) => {
+        const value = params.value ?? [];
+        const employee = topLoadEmployees[Number(value[1] ?? 0)];
+        const currentBucketLabel = trendLabels[Number(value[0] ?? 0)] ?? '';
+        const meta = loadCalendarMeta.get(`${employee?.employeeId ?? ''}:${currentBucketLabel}`);
+        return [
+          `<strong>${employee?.name ?? ''}</strong>`,
+          `${bucketTitle}：${currentBucketLabel}`,
+          `${loadCalendarLabel}：${formatNumber(Number(value[2] ?? 0))}${loadCalendarUnit === 'h' ? ' h' : loadCalendarUnit === '分' ? ' 分' : ' 个'}`,
+          `活跃天数：${meta?.activeDays ?? 0} 天`,
+          `异常员工日：${meta?.anomalyDayCount ?? 0} 天`,
+          `多项目率：${formatPercent(meta?.multiProjectRate ?? 0)}`,
+          `集中度：${formatPercent(meta?.focusScore ?? 0)}`,
+          `任务数：${meta?.taskCount ?? 0}`,
+        ].join('<br/>');
+      },
+    },
+    grid: { left: 56, right: 24, top: 24, bottom: 36, containLabel: true },
+    xAxis: {
+      type: 'category',
+      name: bucketTitle,
+      data: trendLabels,
+    },
+    yAxis: {
+      type: 'category',
+      data: topLoadEmployees.map((item) => item.name),
+    },
+    visualMap: {
+      min: 0,
+      max: loadCalendarMax || 1,
+      orient: 'horizontal',
+      left: 'center',
+      bottom: 0,
+      inRange: {
+        color: loadCalendarColors,
+      },
+    },
+    series: [
+      {
+        type: 'heatmap',
+        data: loadCalendarData,
+        label: {
+          show: trendGranularity !== 'day',
+          formatter: (params: { value?: Array<string | number> }) =>
+            Number(params.value?.[2] ?? 0) > 0 ? formatNumber(Number(params.value?.[2] ?? 0)) : '',
+          color: '#0f172a',
+          fontSize: 11,
+          fontWeight: 600,
+        },
+        emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(15,23,42,0.16)' } },
+      },
+    ],
+  };
+  const longestOverloadStreak = loadCalendarMode === 'hours' && trendGranularity === 'day'
+    ? topLoadEmployees
+        .map((employee) => ({
+          employee,
+          streak: longestConsecutive(
+            trendLabels.map((bucketLabel) => {
+              const meta = loadCalendarMeta.get(`${employee.employeeId}:${bucketLabel}`);
+              return (meta?.totalHours ?? 0) >= analysisConfig.thresholds.standardDailyHours;
+            }),
+          ),
+        }))
+        .sort((left, right) => right.streak - left.streak)[0]
+    : undefined;
+  const loadCalendarNote =
+    loadCalendarMode === 'risk'
+      ? `颜色越深表示该员工在当前${trendLabel}里的综合风险分越高。当前默认展示风险最高的 ${topLoadEmployees.length} 位员工。`
+      : loadCalendarMode === 'anomaly'
+        ? `颜色越深表示异常信号叠加越多。优先留意持续出现深色块的员工，而不是只看单个高点。`
+        : longestOverloadStreak && longestOverloadStreak.streak > 1
+          ? `颜色越深表示当前${trendLabel}总工时越高。${longestOverloadStreak.employee.name} 已连续 ${longestOverloadStreak.streak} 个日期达到 ${formatNumber(
+              analysisConfig.thresholds.standardDailyHours,
+              1,
+            )}h 以上，更适合优先复盘。`
+          : `颜色越深表示当前${trendLabel}总工时越高。当前默认展示风险最高的 ${topLoadEmployees.length} 位员工。`;
+  const loadCalendarActions = (
+    <>
+      {trendGranularityActions}
+      <div className="mini-segment" aria-label="员工负载热图指标">
+        {[
+          ['hours', '总工时'],
+          ['risk', '风险'],
+          ['anomaly', '异常数'],
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            className={`mini-segment-button ${loadCalendarMode === value ? 'active' : ''}`.trim()}
+            onClick={() => setLoadCalendarMode(value as 'hours' | 'risk' | 'anomaly')}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </>
+  );
 
   const summaryEmployee = topRiskEmployees[0];
   const fireEmployee = topFireEmployees[0];
@@ -523,14 +746,16 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
       </Panel>
 
       <ChartPanel
-        title="员工月度总工时"
-        subtitle="按月看谁承担了更多投入"
-        note={`这张图适合看每个月谁承担主力工作。当前投入最高的是 ${topHoursEmployees[0]?.name ?? '暂无'}。`}
-        option={monthlyHoursOption}
+        title="员工总工时趋势"
+        subtitle={`按${trendLabel}看谁承担了更多投入`}
+        note={`这张图适合看不同时间粒度下的主力投入分布。当前投入最高的是 ${topHoursEmployees[0]?.name ?? '暂无'}，当前按${trendLabel}聚合。`}
+        option={employeeTrendOption}
         source="real"
-        method="按员工和月份聚合总工时"
+        method={`按员工和${trendLabel}聚合总工时`}
         reliability="高"
         caution="适合看投入规模，不直接代表产出质量"
+        badge={trendLabel}
+        actions={trendGranularityActions}
       />
 
       <ChartPanel
@@ -614,15 +839,40 @@ export function EmployeesPage({ view, onOpenDetail }: EmployeesPageProps) {
       />
 
       <ChartPanel
-        title="员工月度项目切换"
-        subtitle="按月看谁的项目参与最容易变化"
-        note={`颜色越深表示该员工当月参与的项目越多。当前切换更频繁的通常集中在 ${topSwitchEmployees[0]?.name ?? '暂无'} 等人。`}
+        title="员工负载日历热图"
+        subtitle={`按${trendLabel}看谁处在连续高负载状态`}
+        note={loadCalendarNote}
+        option={loadCalendarOption}
+        source="derived"
+        method={`按员工和${trendLabel}聚合 ${loadCalendarLabel}`}
+        reliability={loadCalendarMode === 'hours' ? '高' : '中'}
+        caution="这张图更适合看连续性和节奏变化，不适合单独用于判断个人效率"
+        badge={loadCalendarMode === 'hours' ? trendLabel : `${trendLabel}·${loadCalendarLabel}`}
+        actions={loadCalendarActions}
+        onChartClick={(params) => {
+          const employee = topLoadEmployees[Number((params.value as Array<string | number>)?.[1] ?? -1)];
+          if (!employee) return;
+          onOpenDetail({
+            kind: 'employee',
+            title: '员工聚焦分析',
+            subtitle: employee.name,
+            employeeId: employee.employeeId,
+            rows: [],
+          });
+        }}
+      />
+
+      <ChartPanel
+        title="员工项目切换热力图"
+        subtitle={`按${trendLabel}看谁的项目参与最容易变化`}
+        note={`颜色越深表示该员工当前${trendLabel}参与的项目越多。当前切换更频繁的通常集中在 ${topSwitchEmployees[0]?.name ?? '暂无'} 等人。`}
         option={monthlySwitchOption}
         source="derived"
-        method="按员工和月份统计当月参与的不同项目数"
+        method={`按员工和${trendLabel}统计参与的不同项目数`}
         reliability="中高"
         caution="项目数高不一定代表问题，需结合月总工时和任务类型一起判断"
-        badge="月"
+        badge={trendLabel}
+        actions={trendGranularityActions}
         onChartClick={(params) => {
           const employee = topSwitchEmployees[Number((params.value as Array<string | number>)?.[1] ?? -1)];
           if (!employee) return;

@@ -1,5 +1,11 @@
 export type TrendGranularity = 'day' | 'week' | 'month';
 
+export function trendGranularityLabel(granularity: TrendGranularity) {
+  if (granularity === 'day') return '日';
+  if (granularity === 'week') return '周';
+  return '月';
+}
+
 interface SeriesPoint {
   date: string;
   value: number;
@@ -20,6 +26,12 @@ function isoWeekLabel(dateString: string) {
 
 function monthLabel(dateString: string) {
   return dateString.slice(0, 7);
+}
+
+export function granularityBucketLabel(dateString: string, granularity: TrendGranularity) {
+  if (granularity === 'month') return monthLabel(dateString);
+  if (granularity === 'week') return isoWeekLabel(dateString);
+  return dateString;
 }
 
 function formatLocalDate(date: Date) {
@@ -86,16 +98,9 @@ export function groupSeriesByGranularity(
   points: SeriesPoint[],
   granularity: TrendGranularity,
 ) {
-  const formatter =
-    granularity === 'month'
-      ? monthLabel
-      : granularity === 'week'
-        ? isoWeekLabel
-        : (date: string) => date;
-
   const buckets = new Map<string, number>();
   points.forEach((point) => {
-    const key = formatter(point.date);
+    const key = granularityBucketLabel(point.date, granularity);
     buckets.set(key, (buckets.get(key) ?? 0) + point.value);
   });
 

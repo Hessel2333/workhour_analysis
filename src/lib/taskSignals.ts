@@ -1,3 +1,4 @@
+import { analysisConfig } from '../config/analysisConfig';
 import type { Task } from '../types';
 
 const REWORK_KEYWORDS = [
@@ -59,14 +60,20 @@ const WORKSTREAM_LABEL_BY_TOPIC: Record<string, string> = {
 
 export function isReworkTask(task: Pick<Task, 'taskName' | 'topicLabel'>) {
   const normalized = task.taskName.toLowerCase();
+  const matchedKeyword = analysisConfig.ruleToggles.enableReworkKeywordRules
+    ? REWORK_KEYWORDS.some((keyword) => normalized.includes(keyword.toLowerCase()))
+    : false;
   return (
     task.topicLabel === '维护' ||
     task.topicLabel === '现场支持' ||
-    REWORK_KEYWORDS.some((keyword) => normalized.includes(keyword.toLowerCase()))
+    matchedKeyword
   );
 }
 
 export function detectTaskStage(task: Pick<Task, 'taskName' | 'topicLabel'>) {
+  if (!analysisConfig.ruleToggles.enableStageDetectionRules) {
+    return '其他';
+  }
   const normalized = task.taskName.toLowerCase();
   const matched = STAGE_RULES.find(
     (rule) =>

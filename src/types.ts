@@ -80,6 +80,7 @@ export interface Task {
   topicLabel: string;
   topicConfidence: number;
   topicSource: 'rule' | 'fallback';
+  topicRuleName: string;
   keywordHits: string[];
 }
 
@@ -88,6 +89,7 @@ export interface TaskTopic {
   topicLabel: string;
   topicConfidence: number;
   topicSource: 'rule' | 'fallback';
+  topicRuleName: string;
 }
 
 export interface QualityFlag {
@@ -141,6 +143,14 @@ export interface BaseDataset {
   tasks: Task[];
   taskTopics: TaskTopic[];
   qualityFlags: QualityFlag[];
+  ingestionSummary: {
+    rawTaskCount: number;
+    validTaskCount: number;
+    excludedImpossibleTaskCount: number;
+    rawEmployeeDayCount: number;
+    validEmployeeDayCount: number;
+    excludedImpossibleDayCount: number;
+  };
   dateRange: {
     start: string;
     end: string;
@@ -294,6 +304,7 @@ export interface DetailSelection {
 }
 
 export interface TopicRule {
+  name: string;
   label: string;
   keywords: string[];
 }

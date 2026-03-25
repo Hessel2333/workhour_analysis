@@ -189,7 +189,12 @@ export function FilterBar({
             <Popover
               trigger={
                 <button className="picker-button">
-                  {filters.projectName || '全部项目'} {ChevronDown}
+                  <span className="picker-button-label">
+                    {filters.projectName || '全部项目'}
+                  </span>
+                  <span className="picker-button-icon" aria-hidden="true">
+                    {ChevronDown}
+                  </span>
                 </button>
               }
             >
@@ -206,7 +211,12 @@ export function FilterBar({
             <Popover
               trigger={
                 <button className="picker-button">
-                  {filters.topicLabel || '全部主题'} {ChevronDown}
+                  <span className="picker-button-label">
+                    {filters.topicLabel || '全部主题'}
+                  </span>
+                  <span className="picker-button-icon" aria-hidden="true">
+                    {ChevronDown}
+                  </span>
                 </button>
               }
             >
@@ -223,7 +233,12 @@ export function FilterBar({
             <Popover
               trigger={
                 <button className="picker-button">
-                  {dataset.employees.find((e) => e.employeeId === filters.employeeId)?.name || '全部员工'} {ChevronDown}
+                  <span className="picker-button-label">
+                    {dataset.employees.find((e) => e.employeeId === filters.employeeId)?.name || '全部员工'}
+                  </span>
+                  <span className="picker-button-icon" aria-hidden="true">
+                    {ChevronDown}
+                  </span>
                 </button>
               }
             >
