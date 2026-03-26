@@ -103,16 +103,10 @@ export default function App() {
       <Sidebar activePage={activePage} onChange={setActivePage} />
       <main className={`app-main ${immersiveMode ? 'immersive-mode' : ''}`.trim()}>
         <FilterBar
-          activePage={activePage}
           dataset={dataset}
           filters={filters}
           immersiveMode={immersiveMode}
           parseError={parseError}
-          view={view}
-          onApplyScenario={(scenario) => {
-            setActivePage(scenario.page);
-            patchFilters(scenario.patch);
-          }}
           onPatchFilters={patchFilters}
           onReset={resetFilters}
           onToggleImmersive={setImmersiveMode}
