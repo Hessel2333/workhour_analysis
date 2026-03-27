@@ -7,11 +7,7 @@ import { analysisConfig } from '../config/analysisConfig';
 import { projectColor } from '../lib/chartColors';
 import { formatNumber, formatPercent } from '../lib/format';
 import { getProjectReworkShareMetric } from '../lib/metrics';
-import {
-  classifyTaskWorkstream,
-  detectTaskStage,
-  isReworkTask,
-} from '../lib/taskSignals';
+import { isReworkTask } from '../lib/taskSignals';
 import {
   buildGranularityLabels,
   fillGroupedSeries,
@@ -21,8 +17,6 @@ import {
 } from '../lib/timeSeries';
 import type { AnalyticsView, DetailSelection, Filters } from '../types';
 
-const PROJECT_WORKFLOW_ORDER = ['建设型', '修补型', '支撑型', '成长型'] as const;
-
 interface ProjectsPageProps {
   view: AnalyticsView;
   filters: Filters;
@@ -30,21 +24,17 @@ interface ProjectsPageProps {
 }
 
 export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps) {
+  const chartScopeSize = 8;
   const [pageMode, setPageMode] = useState<'charts' | 'catalog'>('charts');
   const [catalogChartMode, setCatalogChartMode] = useState<
     | 'hours'
     | 'rework'
-    | 'workflow'
     | 'participants'
     | 'average'
-    | 'diversity'
+    | 'bubble'
     | 'trend'
-    | 'structure'
   >('hours');
-  const [tierMode, setTierMode] = useState<'top' | 'mid' | 'tail'>('top');
-  const [scatterMode, setScatterMode] = useState<'focus' | 'all' | 'mid' | 'tail'>('focus');
-  const [workflowScope, setWorkflowScope] = useState<'focus' | 'all'>('focus');
-  const workflowFocusCount = analysisConfig.displayLimits.projectTierSize;
+  const [chartScope, setChartScope] = useState<'top' | 'mid' | 'tail'>('top');
   const [monthTrendGranularity, setMonthTrendGranularity] = useState<'day' | 'week'>('day');
   const trendGranularity: TrendGranularity =
     filters.periodMode === 'month' ? monthTrendGranularity : 'month';
@@ -55,24 +45,11 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
     filters.endDate,
     trendGranularity,
   );
-  const topProjects = view.projectStats.slice(0, analysisConfig.displayLimits.projectPrimary);
-  const steepestProject = [...view.projectStats].sort(
-    (left, right) => right.trendSlope - left.trendSlope,
-  )[0];
-  const topProject = topProjects[0];
   const projectReworkStats = view.projectStats.map((project) => {
     const tasks = view.tasks.filter((task) => task.projectName === project.projectName);
     const reworkHours = tasks
       .filter((task) => isReworkTask(task))
       .reduce((sum, task) => sum + task.reportHour, 0);
-    const stageHours = new Map<string, number>();
-    tasks.forEach((task) => {
-      const stage = detectTaskStage(task);
-      stageHours.set(stage, (stageHours.get(stage) ?? 0) + task.reportHour);
-    });
-    const dominantStage = [...stageHours.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? '其他';
-    const developmentHours = (stageHours.get('开发') ?? 0) + (stageHours.get('需求/设计') ?? 0);
-    const maintenanceHours = (stageHours.get('维护/反馈') ?? 0) + reworkHours;
     return {
       ...project,
       reworkHours,
@@ -80,127 +57,59 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
         totalHours: project.totalHours,
         reworkHours,
       }).value,
-      dominantStage,
-      developmentHours,
-      maintenanceHours,
     };
   });
-  const fixHeavyProjects = [...projectReworkStats]
+  const sortedProjects = [...projectReworkStats].sort(
+    (left, right) => right.totalHours - left.totalHours,
+  );
+  const chartMidStart = chartScopeSize;
+  const chartMidEnd = chartScopeSize * 2;
+  const scopedProjects =
+    chartScope === 'top'
+      ? sortedProjects.slice(0, chartScopeSize)
+      : chartScope === 'mid'
+        ? sortedProjects.slice(chartMidStart, chartMidEnd)
+        : sortedProjects.slice(chartMidEnd);
+  const displayedProjects =
+    scopedProjects.length > 0
+      ? scopedProjects
+      : sortedProjects.slice(0, chartScopeSize);
+  const chartScopeLabel =
+    chartScope === 'top'
+      ? `TOP ${chartScopeSize}`
+      : chartScope === 'mid'
+        ? '腰部'
+        : '中长尾';
+  const scatterProjects = displayedProjects.filter((item) => item.totalHours > 0);
+  const topProject = displayedProjects[0];
+  const steepestProject = [...displayedProjects].sort(
+    (left, right) => right.trendSlope - left.trendSlope,
+  )[0];
+  const fixHeavyProjects = [...displayedProjects]
     .filter(
       (project) =>
         project.totalHours >= analysisConfig.thresholds.fixHeavyProjectMinHours &&
-        project.maintenanceHours >
-          project.developmentHours * analysisConfig.thresholds.fixHeavyMaintenanceMultiplier &&
         project.reworkRate >= analysisConfig.thresholds.fixHeavyReworkRate,
     )
-    .sort(
-      (left, right) =>
-        right.maintenanceHours / Math.max(right.developmentHours, 1) -
-        left.maintenanceHours / Math.max(left.developmentHours, 1),
-    );
+    .sort((left, right) => right.reworkRate - left.reworkRate);
   const fixHeavySummary =
     fixHeavyProjects.length > 0
       ? `${fixHeavyProjects
           .slice(0, 2)
           .map(
             (project) =>
-              `${project.projectName}（修改/维护 ${formatNumber(project.maintenanceHours)}h，高于开发 ${formatNumber(project.developmentHours)}h）`,
+              `${project.projectName}（返工类 ${formatNumber(project.reworkHours)}h，占比 ${formatPercent(project.reworkRate)}）`,
           )
-          .join('、')} 更像“开发期短、修改期长”的项目。`
-      : '当前未发现明显“开发期短、修改期长”的重点项目。';
-  const sortedProjects = [...projectReworkStats].sort(
-    (left, right) => right.totalHours - left.totalHours,
-  );
-  const scatterBucketSize = analysisConfig.displayLimits.projectScatterBucketSize;
-  const tieredProjects =
-    tierMode === 'top'
-      ? sortedProjects.slice(0, analysisConfig.displayLimits.projectTierSize)
-      : tierMode === 'mid'
-        ? sortedProjects.slice(
-            analysisConfig.displayLimits.projectTierSize,
-            analysisConfig.displayLimits.projectTailStart,
-          )
-        : sortedProjects.slice(
-            analysisConfig.displayLimits.projectTailStart,
-            analysisConfig.displayLimits.projectTailEnd,
-          );
-  const displayedProjects =
-    tieredProjects.length > 0
-      ? tieredProjects
-      : sortedProjects.slice(0, analysisConfig.displayLimits.projectTierSize);
-  const scatterTieredProjects =
-    scatterMode === 'all'
-      ? sortedProjects
-      : scatterMode === 'focus'
-        ? sortedProjects.slice(0, scatterBucketSize)
-        : scatterMode === 'mid'
-          ? sortedProjects.slice(scatterBucketSize, scatterBucketSize * 2)
-          : sortedProjects.slice(scatterBucketSize * 2, scatterBucketSize * 3);
-  const scatterProjects = (
-    scatterTieredProjects.length > 0 ? scatterTieredProjects : sortedProjects.slice(0, scatterBucketSize)
-  ).filter((item) => item.totalHours > 0);
-  const fastestProjects = [...projectReworkStats]
+          .join('、')} 在当前${chartScopeLabel}范围内返工压力相对更高。`
+      : `当前${chartScopeLabel}范围内未发现返工压力明显偏高的项目。`;
+  const fastestProjects = [...displayedProjects]
     .filter((item) => item.totalHours > 0)
     .sort((left, right) => right.trendSlope - left.trendSlope)
-    .slice(0, analysisConfig.displayLimits.projectPrimary);
-  const reworkRankProjects = [...projectReworkStats]
+    .slice(0, Math.min(displayedProjects.length, analysisConfig.displayLimits.projectPrimary));
+  const reworkRankProjects = [...displayedProjects]
     .filter((item) => item.totalHours > 0)
     .sort((left, right) => right.reworkRate - left.reworkRate)
-    .slice(0, analysisConfig.displayLimits.projectPrimary);
-  const workflowProjects = (
-    workflowScope === 'all'
-      ? sortedProjects
-      : sortedProjects.slice(0, workflowFocusCount)
-  ).filter((item) => item.totalHours > 0);
-  const workflowOrder = PROJECT_WORKFLOW_ORDER;
-  const workflowColorMap: Record<(typeof PROJECT_WORKFLOW_ORDER)[number], string> = {
-    建设型: '#2563eb',
-    修补型: '#ef4444',
-    支撑型: '#f59e0b',
-    成长型: '#8b5cf6',
-  };
-  const allWorkflowStats = sortedProjects.map((project) => {
-    const projectTasks = view.tasks.filter((task) => task.projectName === project.projectName);
-    const workstreamHours = workflowOrder.reduce(
-      (summary, label) => ({ ...summary, [label]: 0 }),
-      {} as Record<(typeof workflowOrder)[number], number>,
-    );
-    let pendingHours = 0;
-    projectTasks.forEach((task) => {
-      const workstream = classifyTaskWorkstream(task);
-      if (workstream in workstreamHours) {
-        workstreamHours[workstream as keyof typeof workstreamHours] += task.reportHour;
-      } else {
-        pendingHours += task.reportHour;
-      }
-    });
-    const totalTrackedHours = workflowOrder.reduce(
-      (sum, label) => sum + workstreamHours[label],
-      0,
-    );
-    const denominator = totalTrackedHours || project.totalHours || 1;
-    return {
-      projectName: project.projectName,
-      totalHours: project.totalHours,
-      pendingHours,
-      workstreamHours,
-      shares: workflowOrder.reduce(
-        (summary, label) => ({
-          ...summary,
-          [label]: Number(((workstreamHours[label] / denominator) * 100).toFixed(1)),
-        }),
-        {} as Record<(typeof workflowOrder)[number], number>,
-      ),
-    };
-  });
-  const workflowStats = allWorkflowStats.filter((item) =>
-    workflowProjects.some((project) => project.projectName === item.projectName),
-  );
-  const repairHeavyWorkflowProject = [...workflowStats].sort(
-    (left, right) => right.shares['修补型'] - left.shares['修补型'],
-  )[0];
-  const workflowChartHeight =
-    workflowScope === 'all' ? Math.max(320, workflowStats.length * 42 + 96) : 320;
+    .slice(0, Math.min(displayedProjects.length, analysisConfig.displayLimits.projectPrimary));
 
   const bubbleSymbolSize = (value: number[]) =>
     Math.min(56, Math.max(18, 14 + Number(value[2] ?? 0) * 4));
@@ -208,21 +117,7 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
     Math.min(44, Math.max(16, 12 + Number(value[2] ?? 0) * 2.2));
   const scatterGrid = { left: 36, right: 32, top: 36, bottom: 56, containLabel: true };
 
-  const groupedProjectSeries = topProjects
-    .slice(0, analysisConfig.displayLimits.projectTierSize)
-    .map((project) => ({
-      projectName: project.projectName,
-      points: groupSeriesByGranularity(
-        view.uniqueDates.map((date) => ({
-          date,
-          value: view.tasks
-            .filter((task) => task.projectName === project.projectName && task.date === date)
-            .reduce((sum, task) => sum + task.reportHour, 0),
-        })),
-        trendGranularity,
-      ),
-    }));
-  const tierTrendProjects = displayedProjects.slice(0, analysisConfig.displayLimits.projectTierSize);
+  const tierTrendProjects = displayedProjects.slice(0, chartScopeSize);
   const tierGroupedProjectSeries = tierTrendProjects.map((project) => ({
     projectName: project.projectName,
     points: groupSeriesByGranularity(
@@ -321,7 +216,6 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
           `返工类工时占比：${formatPercent(project.reworkRate)}`,
           `返工类工时：${formatNumber(project.reworkHours)} h`,
           `参与人数：${project.participantCount}`,
-          `主阶段：${project.dominantStage}`,
         ].join('<br/>');
       },
     },
@@ -391,7 +285,6 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
           `返工占比：${formatPercent(project.reworkRate)}`,
           `返工类工时：${formatNumber(project.reworkHours)} h`,
           `总工时：${formatNumber(project.totalHours)} h`,
-          `主阶段：${project.dominantStage}`,
         ].join('<br/>');
       },
     },
@@ -411,85 +304,6 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
       },
     ],
   };
-  const workflowOption = {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: (
-        params: Array<{ seriesName: string; value: number; name: string }>,
-      ) => {
-        const projectName = params[0]?.name ?? '';
-        const project = workflowStats.find((item) => item.projectName === projectName);
-        if (!project) return projectName;
-        return [
-          `<strong>${project.projectName}</strong>`,
-          `总工时：${formatNumber(project.totalHours)} h`,
-          ...workflowOrder.map(
-            (label) =>
-              `${label}：${formatNumber(project.workstreamHours[label])} h (${formatNumber(
-                project.shares[label],
-                1,
-              )}%)`,
-          ),
-          project.pendingHours > 0
-            ? `待确认：${formatNumber(project.pendingHours)} h（未计入四类占比）`
-            : '',
-        ]
-          .filter(Boolean)
-          .join('<br/>');
-      },
-    },
-    legend: { top: 0 },
-    grid: { left: 28, right: 24, top: 52, bottom: 40, containLabel: true },
-    xAxis: {
-      type: 'value',
-      name: '工作流占比',
-      max: 100,
-      axisLabel: { formatter: '{value}%' },
-    },
-    yAxis: {
-      type: 'category',
-      inverse: true,
-      data: workflowStats.map((item) => item.projectName),
-    },
-    series: workflowOrder.map((label) => ({
-      name: label,
-      type: 'bar',
-      stack: 'workflow',
-      emphasis: { focus: 'series' },
-      itemStyle: { color: workflowColorMap[label], borderRadius: 8 },
-      data: workflowStats.map((item) => item.shares[label]),
-    })),
-  };
-  const tierLabel =
-    tierMode === 'top' ? 'Top 5' : tierMode === 'mid' ? '中腰部' : '长尾';
-  const scatterLabel =
-    scatterMode === 'focus'
-      ? '重点项目'
-      : scatterMode === 'all'
-        ? '全部项目'
-        : scatterMode === 'mid'
-          ? '中腰部'
-          : '长尾';
-  const renderScatterActions = () => (
-    <div className="mini-segment" aria-label="散点图显示范围">
-      {[
-        ['focus', '重点'],
-        ['all', '全部'],
-        ['mid', '中腰部'],
-        ['tail', '长尾'],
-      ].map(([value, label]) => (
-        <button
-          key={value}
-          type="button"
-          className={`mini-segment-button ${scatterMode === value ? 'active' : ''}`.trim()}
-          onClick={() => setScatterMode(value as 'focus' | 'all' | 'mid' | 'tail')}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
   const renderTrendActions = () =>
     canSwitchTrendGranularity ? (
       <TrendGranularitySwitch
@@ -498,23 +312,6 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
         ariaLabel="项目趋势聚合粒度"
       />
     ) : undefined;
-  const renderWorkflowActions = () => (
-    <div className="mini-segment" aria-label="项目工作流显示范围">
-      {[
-        ['focus', `Top ${workflowFocusCount}`],
-        ['all', '全部'],
-      ].map(([value, label]) => (
-        <button
-          key={value}
-          type="button"
-          className={`mini-segment-button ${workflowScope === value ? 'active' : ''}`.trim()}
-          onClick={() => setWorkflowScope(value as 'focus' | 'all')}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
   const renderCatalogActions = () => (
     <div className="catalog-switcher" aria-label="全量项目主图切换">
       {[
@@ -524,22 +321,16 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
             ['hours', '总工时'],
             ['participants', '参与人数'],
             ['average', '人均投入'],
+            ['bubble', '气泡图'],
           ] as const,
         },
         {
           label: '质量/结构',
-          items: [
-            ['rework', '返工占比'],
-            ['structure', '开发/维护'],
-            ['workflow', '工作流'],
-          ] as const,
+          items: [['rework', '返工占比']] as const,
         },
         {
           label: '变化',
-          items: [
-            ['diversity', '复杂度'],
-            ['trend', '趋势'],
-          ] as const,
+          items: [['trend', '趋势']] as const,
         },
       ].map((group) => (
         <div className="catalog-switcher-group" key={group.label}>
@@ -587,14 +378,8 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
     (left, right) =>
       right.averageHoursPerPerson - left.averageHoursPerPerson || right.totalHours - left.totalHours,
   );
-  const diversityProjects = [...sortedProjects].sort(
-    (left, right) => right.topicDiversity - left.topicDiversity || right.totalHours - left.totalHours,
-  );
   const trendProjects = [...projectReworkStats].sort(
     (left, right) => right.trendSlope - left.trendSlope || right.totalHours - left.totalHours,
-  );
-  const structureProjects = [...projectReworkStats].sort(
-    (left, right) => right.maintenanceHours - left.maintenanceHours || right.totalHours - left.totalHours,
   );
 
   const allProjectsBarOption = {
@@ -624,7 +409,6 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
           `返工占比：${formatPercent(project.reworkRate)}`,
           `返工类工时：${formatNumber(project.reworkHours)} h`,
           `总工时：${formatNumber(project.totalHours)} h`,
-          `主阶段：${project.dominantStage}`,
         ].join('<br/>');
       },
     },
@@ -686,23 +470,6 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
     ],
   };
 
-  const allDiversityOption = {
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: 28, right: 20, top: 24, bottom: 40, containLabel: true },
-    xAxis: { type: 'value', name: '主题复杂度' },
-    yAxis: {
-      type: 'category',
-      inverse: true,
-      data: diversityProjects.map((item) => item.projectName),
-    },
-    series: [
-      createCatalogBarSeries(
-        diversityProjects.map((item) => item.topicDiversity),
-        '#ff9f0a',
-      ),
-    ],
-  };
-
   const allTrendOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 28, right: 20, top: 24, bottom: 40, containLabel: true },
@@ -720,108 +487,51 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
     ],
   };
 
-  const allStructureOption = {
+  const allProjectsBubbleOption = {
     tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: (
-        params: Array<{ seriesName: string; value: number; name: string }>,
-      ) => {
-        const projectName = params[0]?.name ?? '';
-        const project = structureProjects.find((item) => item.projectName === projectName);
+      trigger: 'item',
+      formatter: (params: { value?: Array<string | number> }) => {
+        const value = params.value ?? [];
+        const projectName = String(value[3] ?? '');
+        const project = sortedProjects.find((item) => item.projectName === projectName);
         if (!project) return projectName;
         return [
           `<strong>${project.projectName}</strong>`,
-          `维护/修改：${formatNumber(project.maintenanceHours)} h`,
-          `开发/需求：${formatNumber(project.developmentHours)} h`,
+          `参与人数：${project.participantCount}`,
           `总工时：${formatNumber(project.totalHours)} h`,
-          `返工占比：${formatPercent(project.reworkRate)}`,
+          `主题复杂度：${project.topicDiversity}`,
+          `人均投入：${formatNumber(project.averageHoursPerPerson)} h`,
+          `主导主题：${project.primaryTopic}`,
         ].join('<br/>');
       },
     },
-    legend: { top: 0 },
-    grid: { left: 28, right: 24, top: 52, bottom: 40, containLabel: true },
-    xAxis: { type: 'value', name: '工时' },
-    yAxis: {
-      type: 'category',
-      inverse: true,
-      data: structureProjects.map((item) => item.projectName),
-    },
+    grid: { left: 42, right: 28, top: 24, bottom: 52, containLabel: true },
+    xAxis: { type: 'value', name: '参与人数', scale: true },
+    yAxis: { type: 'value', name: '总工时（h）', scale: true },
     series: [
       {
-        name: '开发/需求',
-        type: 'bar',
-        stack: 'structure',
-        barMaxWidth: catalogBarMaxWidth,
-        data: structureProjects.map((item) => item.developmentHours),
-        itemStyle: { color: '#1f6fff', borderRadius: 8 },
-      },
-      {
-        name: '维护/修改',
-        type: 'bar',
-        stack: 'structure',
-        barMaxWidth: catalogBarMaxWidth,
-        data: structureProjects.map((item) => item.maintenanceHours),
-        itemStyle: { color: '#ff7a59', borderRadius: 8 },
+        type: 'scatter',
+        clip: false,
+        symbolSize: bubbleSymbolSize,
+        data: sortedProjects
+          .filter((project) => project.totalHours > 0)
+          .map((project) => [
+            project.participantCount,
+            Number(project.totalHours.toFixed(1)),
+            project.topicDiversity,
+            project.projectName,
+          ]),
+        itemStyle: {
+          color: '#2a9d8f',
+          opacity: 0.84,
+        },
       },
     ],
   };
 
-  const allWorkflowOption = {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: (
-        params: Array<{ seriesName: string; value: number; name: string }>,
-      ) => {
-        const projectName = params[0]?.name ?? '';
-        const project = allWorkflowStats.find((item) => item.projectName === projectName);
-        if (!project) return projectName;
-        return [
-          `<strong>${project.projectName}</strong>`,
-          `总工时：${formatNumber(project.totalHours)} h`,
-          ...workflowOrder.map(
-            (label) =>
-              `${label}：${formatNumber(project.workstreamHours[label])} h (${formatNumber(
-                project.shares[label],
-                1,
-              )}%)`,
-          ),
-          project.pendingHours > 0
-            ? `待确认：${formatNumber(project.pendingHours)} h（未计入四类占比）`
-            : '',
-        ]
-          .filter(Boolean)
-          .join('<br/>');
-      },
-    },
-    legend: { top: 0 },
-    grid: { left: 28, right: 24, top: 52, bottom: 40, containLabel: true },
-    xAxis: {
-      type: 'value',
-      name: '工作流占比',
-      max: 100,
-      axisLabel: { formatter: '{value}%' },
-    },
-    yAxis: {
-      type: 'category',
-      inverse: true,
-      data: allWorkflowStats.map((item) => item.projectName),
-    },
-    series: workflowOrder.map((label) => ({
-      name: label,
-      type: 'bar',
-      stack: 'workflow',
-      barMaxWidth: catalogBarMaxWidth,
-      emphasis: { focus: 'series' },
-      itemStyle: { color: workflowColorMap[label], borderRadius: 8 },
-      data: allWorkflowStats.map((item) => item.shares[label]),
-    })),
-  };
-
   const catalogHeroHeight = (() => {
-    if (catalogChartMode === 'workflow' || catalogChartMode === 'structure') {
-      return Math.max(420, allWorkflowStats.length * 42 + 110);
+    if (catalogChartMode === 'bubble') {
+      return 560;
     }
     return Math.max(420, sortedProjects.length * 36 + 110);
   })();
@@ -859,13 +569,14 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
       source: 'derived' as const,
       onChartClick: (params: { name?: string }) => openProjectDetail(String(params.name ?? '')),
     },
-    diversity: {
-      title: '全部项目主题复杂度',
-      subtitle: '按主题复杂度从高到低展开全部项目',
-      note: '',
-      option: allDiversityOption,
+    bubble: {
+      title: '全部项目气泡图',
+      subtitle: '参与人数、总工时和主题复杂度的全量分布',
+      note: '每个气泡代表一个项目。横轴看参与人数，纵轴看总工时，气泡大小表示主题复杂度。',
+      option: allProjectsBubbleOption,
       source: 'derived' as const,
-      onChartClick: (params: { name?: string }) => openProjectDetail(String(params.name ?? '')),
+      onChartClick: (params: { value?: unknown }) =>
+        openProjectDetail(String((params.value as Array<string | number> | undefined)?.[3] ?? '')),
     },
     trend: {
       title: '全部项目趋势斜率',
@@ -875,43 +586,18 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
       source: 'derived' as const,
       onChartClick: (params: { name?: string }) => openProjectDetail(String(params.name ?? '')),
     },
-    structure: {
-      title: '全部项目开发-维护结构',
-      subtitle: '按维护/修改工时从高到低展开全部项目',
-      note: '',
-      option: allStructureOption,
-      source: 'derived' as const,
-      onChartClick: (params: { name?: string }) => openProjectDetail(String(params.name ?? '')),
-    },
-    workflow: {
-      title: '全部项目工作流结构',
-      subtitle: '按总工时从高到低展开全部项目',
-      note: '',
-      option: allWorkflowOption,
-      source: 'derived' as const,
-      onChartClick: (params: { name?: string }) => openProjectDetail(String(params.name ?? '')),
-    },
   }[catalogChartMode];
 
   return (
     <div className="page-grid">
-      <section
-        className={`panel panel-wide project-view-toolbar ${pageMode === 'catalog' ? 'sticky' : ''}`.trim()}
-      >
+      <section className="panel panel-wide project-view-toolbar sticky">
         <div className="project-view-toolbar-inner">
-          <div className="project-view-toolbar-copy">
-            <p className="panel-kicker">项目页视图</p>
-            <h3 className="panel-title">
-              {pageMode === 'charts' ? '图表探索' : '全量项目纵览'}
-            </h3>
-            <p className="project-view-toolbar-note">
-              {pageMode === 'charts'
-                ? '先找重点项目，再下钻详情。'
-                : '主图支持随滚动切换不同全量视角。'}
-            </p>
-          </div>
           <div className="project-view-toolbar-actions">
-            <div className="focus-tabs" role="tablist" aria-label="项目页视图切换">
+            <div
+              className="focus-tabs project-view-page-switch"
+              role="tablist"
+              aria-label="项目页视图切换"
+            >
               {[
                 ['charts', '图表页'],
                 ['catalog', '全量项目'],
@@ -928,7 +614,32 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
                 </button>
               ))}
             </div>
-            {pageMode === 'catalog' ? renderCatalogActions() : null}
+            {pageMode === 'charts' ? (
+              <div
+                className="mini-segment project-view-scope-switch"
+                role="tablist"
+                aria-label="项目图表范围筛选"
+              >
+                {[
+                  ['top', `TOP ${chartScopeSize}`],
+                  ['mid', '腰部'],
+                  ['tail', '中长尾'],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={chartScope === value}
+                    className={`mini-segment-button ${chartScope === value ? 'active' : ''}`.trim()}
+                    onClick={() => setChartScope(value as 'top' | 'mid' | 'tail')}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              renderCatalogActions()
+            )}
           </div>
         </div>
       </section>
@@ -937,7 +648,7 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
         <>
       <Panel
         title="项目洞察"
-        subtitle="先看重点项目，再点开项目纵览"
+        subtitle="先看当前范围，再点开项目纵览"
         className="panel-wide panel-strip"
         meta={
           <div className="chart-meta">
@@ -947,31 +658,13 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
             <span>人均投入：总工时 / 参与人数</span>
           </div>
         }
-        actions={
-          <div className="mini-segment">
-            {[
-              ['top', 'Top 5'],
-              ['mid', '中腰部'],
-              ['tail', '长尾'],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                className={`mini-segment-button ${tierMode === value ? 'active' : ''}`.trim()}
-                onClick={() => setTierMode(value as 'top' | 'mid' | 'tail')}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        }
       >
         <div className="insight-grid">
           <div className="insight-card">
             <strong>当前投入最高</strong>
             <p>
               {topProject
-                ? `${topProject.projectName} 是当前投入最高的项目，总工时 ${formatNumber(topProject.totalHours)}h。`
+                ? `${topProject.projectName} 是当前${chartScopeLabel}里投入最高的项目，总工时 ${formatNumber(topProject.totalHours)}h。`
                 : '当前没有可解释的项目样本。'}
             </p>
           </div>
@@ -979,7 +672,7 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
             <strong>变化最快</strong>
             <p>
               {steepestProject
-                ? `${steepestProject.projectName} 的趋势斜率最高，为 ${formatNumber(steepestProject.trendSlope, 1)}。`
+                ? `${steepestProject.projectName} 在当前${chartScopeLabel}里趋势斜率最高，为 ${formatNumber(steepestProject.trendSlope, 1)}。`
                 : '当前没有可解释的项目趋势样本。'}
             </p>
           </div>
@@ -993,35 +686,9 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
       </Panel>
 
       <ChartPanel
-        title="项目工作流结构图"
-        subtitle="一眼看出哪些项目更偏建设、修补、支撑还是成长"
-        note={
-          repairHeavyWorkflowProject
-            ? `${repairHeavyWorkflowProject.projectName} 当前修补型占比最高，为 ${formatNumber(repairHeavyWorkflowProject.shares['修补型'], 1)}%。默认展示重点项目，可切换查看全部。`
-            : '这张图按四类工作流拆分项目工时结构，适合快速识别“修补型占比偏高”的项目。'
-        }
-        option={workflowOption}
-        height={workflowChartHeight}
-        source="derived"
-        method="按项目聚合任务，再归并为建设型 / 修补型 / 支撑型 / 成长型并换算占比"
-        reliability="中"
-        caution="待确认和未分类任务不计入四类占比，若灰区任务较多，建议先去任务页补规则"
-        actions={renderWorkflowActions()}
-        onChartClick={(params) =>
-          onOpenDetail({
-            kind: 'project',
-            title: '项目聚焦分析',
-            subtitle: String(params.name ?? ''),
-            projectName: String(params.name ?? ''),
-            rows: [],
-          })
-        }
-      />
-
-      <ChartPanel
         title="项目投入规模"
-        subtitle="固定看总工时，再切 Top 5 / 中腰部 / 长尾"
-        note={`这张图只看总量，避免把“小时、斜率、百分比”混在一张图里。当前正在看 ${tierLabel} 项目。`}
+        subtitle="固定看总工时"
+        note={`这张图只看总量，避免把“小时、斜率、百分比”混在一张图里。当前范围：${chartScopeLabel}。`}
         option={barOption}
         source="real"
         method="按项目聚合总工时，再按层级分组展示"
@@ -1041,7 +708,7 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
       <ChartPanel
         title="变化最快项目"
         subtitle="单独看增长，不和总量混在一张图里"
-        note={`这张图专门把“不是 Top 总量，但变化更快”的项目拉出来。当前变化最快的是 ${steepestProject?.projectName ?? '暂无'}。`}
+        note={`这张图只看当前${chartScopeLabel}里的增长差异。当前变化最快的是 ${steepestProject?.projectName ?? '暂无'}。`}
         option={fastestOption}
         source="derived"
         method="按项目趋势斜率排序"
@@ -1061,12 +728,12 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
       <ChartPanel
         title="返工占比排行"
         subtitle="单独看返工压力，不和总量混在一张图里"
-        note={`${fixHeavyProjects[0] ? `${fixHeavyProjects[0].projectName} 当前返工压力最值得优先复盘。` : '这张图回答：哪些项目更像处在修补和反馈处理阶段。'}`}
+        note={`${fixHeavyProjects[0] ? `${fixHeavyProjects[0].projectName} 在当前${chartScopeLabel}里返工压力最值得优先复盘。` : '这张图回答：当前范围里哪些项目承受较高的返工和反馈处理压力。'}`}
         option={reworkRankOption}
         source="derived"
         method="按返工类工时占比排序"
         reliability="中"
-        caution="返工高说明修补压力大，建议结合总工时和阶段演进一起看"
+        caution="返工高说明修补压力大，建议结合总工时和任务类型结构一起看"
         onChartClick={(params) =>
           onOpenDetail({
             kind: 'project',
@@ -1081,7 +748,7 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
       <ChartPanel
         title="趋势对比"
         subtitle="重点项目是否出现投入波动"
-        note={`这张图跟随当前 ${tierLabel} 视图。按${trendLabel}聚合，适合看这一层项目里谁在抬升、谁在回落。`}
+        note={`这张图跟随当前 ${chartScopeLabel} 视图。按${trendLabel}聚合，适合看这一层项目里谁在抬升、谁在回落。`}
         option={trendOption}
         source="real"
         method={`按项目和${trendLabel}聚合的趋势折线`}
@@ -1094,13 +761,12 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
       <ChartPanel
         title="项目气泡图"
         subtitle="参与人数、总工时、主题复杂度联动"
-        note={`当前查看 ${scatterLabel}。可以切换范围看整体分布，也可以聚焦重点项目，避免全部堆在一张图里。`}
+        note={`当前查看 ${chartScopeLabel}。用同一套页面范围筛选同步看整体分布，避免每张图各自切换。`}
         option={bubbleOption}
         source="derived"
         method="参与人数 + 总工时 + 主题复杂度联动"
         reliability="中"
         caution="参与人数高不自动代表协同效率高，应和人均投入一起解读"
-        actions={renderScatterActions()}
         onChartClick={(params) =>
           onOpenDetail({
             kind: 'project',
@@ -1115,13 +781,12 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
       <ChartPanel
         title="项目返工四象限"
         subtitle="总工时高且返工占比高的项目更值得优先复盘"
-        note={`${fixHeavyProjects[0] ? `${fixHeavyProjects[0].projectName} 当前最接近“开发短、修改长”的模式。` : '纵轴越高，说明修改、bug、调整、客户反馈类工时占比越高。'} 当前查看 ${scatterLabel}。`}
+        note={`${fixHeavyProjects[0] ? `${fixHeavyProjects[0].projectName} 在当前${chartScopeLabel}里最接近“高投入、高返工”的模式。` : '纵轴越高，说明修改、bug、调整、客户反馈类工时占比越高。'} 当前查看 ${chartScopeLabel}。`}
         option={quadrantOption}
         source="derived"
         method="总工时 + 返工类关键词占比 + 项目参与人数"
         reliability="中"
         caution="返工类识别来自任务文本规则，适合快速发现线索"
-        actions={renderScatterActions()}
         onChartClick={(params) =>
           onOpenDetail({
             kind: 'project',

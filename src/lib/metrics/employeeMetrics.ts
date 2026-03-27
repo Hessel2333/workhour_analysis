@@ -43,20 +43,22 @@ export function getFocusScoreMetric(
 export function getEmployeeRiskMetric(input: {
   multiProjectRate: number;
   focusScore: number;
+  heavyOvertimeDayCount: number;
   anomalyDayCount: number;
   taskCount: number;
 }): MetricDefinition<number> {
   const value =
-    input.multiProjectRate * 45 +
-    (1 - input.focusScore) * 30 +
-    input.anomalyDayCount * 6 +
-    Math.min(input.taskCount / 40, 1) * 19;
+    input.multiProjectRate * 42 +
+    (1 - input.focusScore) * 28 +
+    Math.min(input.heavyOvertimeDayCount / 6, 1) * 18 +
+    input.anomalyDayCount * 4 +
+    Math.min(input.taskCount / 40, 1) * 16;
 
   return {
     value,
     label: '员工风险分',
-    description: '综合切换频率、集中度、异常日和任务量得到的复盘优先级分数。',
-    formula: '多项目率×45 + (1-集中度)×30 + 异常日×6 + min(任务数/40,1)×19',
+    description: '综合切换频率、集中度、重度加班日、异常负载日和任务量得到的复盘优先级分数。',
+    formula: '多项目率×42 + (1-集中度)×28 + min(重度加班日/6,1)×18 + 异常日×4 + min(任务数/40,1)×16',
     limitations: [
       '这是复盘优先级线索，不是绩效评价分。',
       '不同团队任务拆分习惯不同，分数不适合跨团队横比。',
@@ -69,7 +71,7 @@ export function getFirefightingMetric(input: {
   reworkHours: number;
   supportHours: number;
   multiProjectRate: number;
-  anomalyDayCount: number;
+  heavyOvertimeDayCount: number;
 }): MetricDefinition<number> & {
   reworkShare: number;
   supportShare: number;
@@ -80,13 +82,13 @@ export function getFirefightingMetric(input: {
     reworkShare * 44 +
     supportShare * 22 +
     input.multiProjectRate * 20 +
-    Math.min(input.anomalyDayCount / 8, 1) * 14;
+    Math.min(input.heavyOvertimeDayCount / 6, 1) * 14;
 
   return {
     value,
     label: '救火指数',
-    description: '综合返工、现场支持、高切换和异常日，估计员工是否长期处在救火型工作状态。',
-    formula: '返工占比×44 + 现场支持占比×22 + 多项目率×20 + min(异常日/8,1)×14',
+    description: '综合返工、现场支持、高切换和重度加班日，估计员工是否长期处在救火型工作状态。',
+    formula: '返工占比×44 + 现场支持占比×22 + 多项目率×20 + min(重度加班日/6,1)×14',
     limitations: [
       '依赖返工和现场支持的规则识别，文本命名会影响结果。',
       '更适合发现流程与排班问题，不适合直接用于个人评价。',

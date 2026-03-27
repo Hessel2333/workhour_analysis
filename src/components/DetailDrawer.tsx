@@ -11,7 +11,6 @@ import { TrendGranularitySwitch } from './TrendGranularitySwitch';
 import { formatNumber, formatPercent } from '../lib/format';
 import { buildTopicExplanation } from '../lib/topicExplain';
 import { buildOvertimeHistogram, buildOvertimeRecords } from '../lib/overtime';
-import { detectTaskStage, PROJECT_STAGE_ORDER } from '../lib/taskSignals';
 import {
   buildGranularityLabels,
   fillGroupedSeries,
@@ -50,32 +49,27 @@ function MiniMetric({
 
 function FocusChartShell({
   title,
-  subtitle,
   option,
   isDark,
   isCompact,
   isPhone,
   actions,
+  legend,
 }: {
   title: string;
-  subtitle: string;
   option: Record<string, unknown>;
   isDark: boolean;
   isCompact: boolean;
   isPhone: boolean;
   actions?: ReactNode;
+  legend?: ReactNode;
 }) {
   const [touchActive, setTouchActive] = useState(false);
-  const hasLegend = Boolean((option as { legend?: unknown }).legend);
   const chartHeight = isPhone
-    ? hasLegend
-      ? 272
-      : 236
+    ? 272
     : isCompact
-      ? hasLegend
-        ? 280
-        : 240
-      : 240;
+      ? 280
+      : 272;
 
   return (
     <section
@@ -90,10 +84,14 @@ function FocusChartShell({
           <p className="panel-kicker">{title}</p>
           {actions}
         </div>
-        <h4>{subtitle}</h4>
+        {legend ? <div className="focus-chart-legend">{legend}</div> : null}
         {isCompact ? <span className="focus-touch-hint">轻触图表查看数据</span> : null}
       </div>
-      <ReactECharts option={withChartTheme(option, isDark, isCompact)} style={{ height: chartHeight }} />
+      <ReactECharts
+        option={withChartTheme(option, isDark, isCompact)}
+        style={{ height: chartHeight }}
+        notMerge
+      />
     </section>
   );
 }
@@ -153,7 +151,7 @@ export function DetailDrawer({
   const { isCompact, isPhone } = useViewport();
   const [activeTab, setActiveTab] = useState<FocusTab>('overview');
   const [monthTrendGranularity, setMonthTrendGranularity] = useState<'day' | 'week'>('day');
-  const [projectStageViewMode, setProjectStageViewMode] = useState<'share' | 'hours'>('share');
+  const [projectTopicViewMode, setProjectTopicViewMode] = useState<'share' | 'hours'>('share');
   const trendGranularity: TrendGranularity =
     filters.periodMode === 'month' ? monthTrendGranularity : 'month';
   const trendLabel = trendGranularityLabel(trendGranularity);
@@ -173,8 +171,21 @@ export function DetailDrawer({
 
   useEffect(() => {
     setActiveTab('overview');
-    setProjectStageViewMode('share');
+    setProjectTopicViewMode('share');
   }, [detail?.kind, detail?.employeeId, detail?.projectName, detail?.date, detail?.taskId]);
+
+  const headerTabs =
+    detail?.kind === 'employee' || detail?.kind === 'project' || detail?.kind === 'date'
+      ? [
+          { key: 'overview' as const, label: '概览' },
+          { key: 'tasks' as const, label: '任务' },
+        ]
+      : detail?.kind === 'task'
+        ? [
+            { key: 'overview' as const, label: '概览' },
+            { key: 'tasks' as const, label: '关联任务' },
+          ]
+        : null;
 
   const renderContent = () => {
     if (!detail) return null;
@@ -534,21 +545,15 @@ export function DetailDrawer({
           <div className="focus-chart-grid">
             <FocusChartShell
               title="工时趋势"
-              subtitle={`按${trendLabel}观察个人投入变化`}
               option={hoursTrendOption}
               isDark={isDark}
               isCompact={isCompact}
               isPhone={isPhone}
               actions={trendGranularityActions}
             />
-            <FocusChartShell title="项目构成" subtitle="该员工在不同项目上的工时分布" option={projectStackOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell title="项目构成" option={projectStackOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
             <FocusChartShell
               title="加班分布"
-              subtitle={
-                employeeOvertimeDayCount
-                  ? `共 ${employeeOvertimeDayCount} 个加班员工日，看加班通常落在哪些区间`
-                  : '当前范围内没有加班记录'
-              }
               option={overtimeHistogramOption}
               isDark={isDark}
               isCompact={isCompact}
@@ -556,7 +561,6 @@ export function DetailDrawer({
             />
             <FocusChartShell
               title="项目参与演进"
-              subtitle={`按${trendLabel}看参与项目占比变化`}
               option={projectEvolutionOption}
               isDark={isDark}
               isCompact={isCompact}
@@ -565,14 +569,13 @@ export function DetailDrawer({
             />
             <FocusChartShell
               title="任务类型演进"
-              subtitle={`按${trendLabel}看任务类型占比变化`}
               option={topicEvolutionOption}
               isDark={isDark}
               isCompact={isCompact}
               isPhone={isPhone}
               actions={trendGranularityActions}
             />
-            <FocusChartShell title="任务主题" subtitle="当前主要工作类型构成" option={topicBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell title="任务主题" option={topicBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
           </div>
         </>
       );
@@ -608,20 +611,10 @@ export function DetailDrawer({
       );
 
       return (
-        <>
-          <FocusTabs
-            labels={[
-              { key: 'overview', label: '概览' },
-              { key: 'tasks', label: '任务' },
-            ]}
-            activeTab={activeTab}
-            onChange={setActiveTab}
-          />
-          <div className="focus-tab-panel">
-            {activeTab === 'overview' ? overviewPanel : null}
-            {activeTab === 'tasks' ? tasksPanel : null}
-          </div>
-        </>
+        <div className="focus-tab-panel">
+          {activeTab === 'overview' ? overviewPanel : null}
+          {activeTab === 'tasks' ? tasksPanel : null}
+        </div>
       );
     }
 
@@ -664,6 +657,15 @@ export function DetailDrawer({
         })),
         trendGranularity,
       );
+      const groupedTotalTrend = groupSeriesByGranularity(
+        view.uniqueDates.map((date) => ({
+          date,
+          value: view.employeeDays
+            .filter((day) => day.date === date)
+            .reduce((sum, day) => sum + day.reportHour, 0),
+        })),
+        trendGranularity,
+      );
       const groupedTopicSeries = topicNames.map((topicLabel) => ({
         topicLabel,
         points: groupSeriesByGranularity(
@@ -676,22 +678,9 @@ export function DetailDrawer({
           trendGranularity,
         ),
       }));
-      const groupedStageSeries = PROJECT_STAGE_ORDER.map((stageLabel) => ({
-        stageLabel,
-        points: groupSeriesByGranularity(
-          view.uniqueDates.map((date) => ({
-            date,
-            value: projectTasks
-              .filter(
-                (task) =>
-                  detectTaskStage(task) === stageLabel && task.date === date,
-              )
-              .reduce((sum, task) => sum + task.reportHour, 0),
-          })),
-          trendGranularity,
-        ),
-      }));
       const trendLabels = globalTrendLabels;
+      const projectTrendPoints = fillGroupedSeries(trendLabels, groupedTrend);
+      const totalTrendPoints = fillGroupedSeries(trendLabels, groupedTotalTrend);
       const totalByLabel = new Map(
         trendLabels.map((label) => [
           label,
@@ -701,30 +690,87 @@ export function DetailDrawer({
           }, 0),
         ]),
       );
-      const totalStageByLabel = new Map(
-        trendLabels.map((label) => [
-          label,
-          groupedStageSeries.reduce((sum, series) => {
-            const matched = series.points.find((item) => item.label === label);
-            return sum + (matched?.value ?? 0);
-          }, 0),
-        ]),
-      );
-
       const trendOption = {
-        tooltip: { trigger: 'axis' },
-        grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
+        tooltip: {
+          trigger: 'axis',
+          formatter: (
+            params: Array<{
+              axisValue: string;
+              value: number;
+              seriesName: string;
+              marker?: string;
+            }>,
+          ) => {
+            const axisValue = String(params[0]?.axisValue ?? '');
+            const total =
+              totalTrendPoints.find((item) => item.label === axisValue)?.value ?? 0;
+            const hours =
+              projectTrendPoints.find((item) => item.label === axisValue)?.value ?? 0;
+            const share = total ? ((hours / total) * 100).toFixed(1) : '0.0';
+            return [
+              `<strong>${axisValue}</strong>`,
+              ...params.map((item) => {
+                const label = item.seriesName === '项目占比' ? `${formatNumber(Number(item.value ?? 0), 1)}%` : `${formatNumber(Number(item.value ?? 0))} h`;
+                return `${item.marker ?? ''}${item.seriesName}：${label}`;
+              }),
+              `全局总工时：${formatNumber(total)} h`,
+              `项目工时占比：${share}%`,
+            ].join('<br/>');
+          },
+        },
+        grid: { left: 24, right: 28, top: 28, bottom: 40, containLabel: true },
         xAxis: { type: 'category', data: trendLabels },
-        yAxis: { type: 'value', name: '工时' },
+        yAxis: [
+          { type: 'value' },
+          {
+            type: 'value',
+            max: 100,
+            axisLabel: { formatter: '{value}%' },
+          },
+        ],
         series: [
           {
+            name: '项目工时',
+            type: 'bar',
+            color: '#2a9d8f',
+            yAxisIndex: 0,
+            barMaxWidth: isPhone ? 18 : 26,
+            itemStyle: {
+              borderRadius: [8, 8, 0, 0],
+            },
+            data: projectTrendPoints.map((item) => item.value),
+          },
+          {
+            name: '项目占比',
             type: 'line',
             smooth: true,
-            color: '#2a9d8f',
-            data: fillGroupedSeries(trendLabels, groupedTrend).map((item) => item.value),
+            yAxisIndex: 1,
+            color: '#f59e0b',
+            lineStyle: { width: 2, type: 'dashed' },
+            symbolSize: 7,
+            data: projectTrendPoints.map((item, index) => {
+              const total = totalTrendPoints[index]?.value ?? 0;
+              return total ? Number(((item.value / total) * 100).toFixed(1)) : 0;
+            }),
           },
         ],
       };
+      const trendLegend = (
+        <>
+          {[
+            ['项目工时', '#2a9d8f', 'bar'],
+            ['项目占比', '#f59e0b', 'line'],
+          ].map(([label, color, kind]) => (
+            <span key={label} className="focus-chart-legend-item">
+              <span
+                className={`focus-chart-legend-swatch ${kind === 'line' ? 'line' : ''}`.trim()}
+                style={{ ['--legend-color' as string]: color }}
+              />
+              <span>{label}</span>
+            </span>
+          ))}
+        </>
+      );
 
       const topicEvolutionOption = {
         tooltip: {
@@ -745,12 +791,10 @@ export function DetailDrawer({
             ].join('<br/>');
           },
         },
-        legend: { top: 0 },
-        grid: { left: 24, right: 18, top: 50, bottom: 40, containLabel: true },
+        grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'category', data: trendLabels },
         yAxis: {
           type: 'value',
-          name: '类型占比',
           max: 100,
           axisLabel: { formatter: '{value}%' },
         },
@@ -773,55 +817,7 @@ export function DetailDrawer({
           color: topicColor(topicLabel, index),
         })),
       };
-
-      const stageEvolutionOption = {
-        tooltip: {
-          trigger: 'axis',
-          formatter: (
-            params: Array<{ axisValue: string; seriesName: string; value: number }>,
-          ) => {
-            const axisValue = String(params[0]?.axisValue ?? '');
-            return [
-              `<strong>${axisValue}</strong>`,
-              ...params
-                .filter((item) => Number(item.value ?? 0) > 0)
-                .map((item) => {
-                  const total = totalStageByLabel.get(axisValue) ?? 0;
-                  const hours = total * (Number(item.value ?? 0) / 100);
-                  return `${item.seriesName}：${formatNumber(hours)} h (${formatNumber(Number(item.value ?? 0), 1)}%)`;
-                }),
-            ].join('<br/>');
-          },
-        },
-        legend: { top: 0 },
-        grid: { left: 24, right: 18, top: 50, bottom: 40, containLabel: true },
-        xAxis: { type: 'category', data: trendLabels },
-        yAxis: {
-          type: 'value',
-          name: '阶段占比',
-          max: 100,
-          axisLabel: { formatter: '{value}%' },
-        },
-        series: PROJECT_STAGE_ORDER.map((stageLabel, index) => ({
-          name: stageLabel,
-          type: 'line',
-          stack: 'stageShare',
-          smooth: true,
-          symbol: 'none',
-          areaStyle: { opacity: 0.86 },
-          lineStyle: { width: 0.8 },
-          emphasis: { focus: 'series' },
-          data: fillGroupedSeries(
-            trendLabels,
-            groupedStageSeries.find((item) => item.stageLabel === stageLabel)?.points ?? [],
-          ).map((point) => {
-            const total = totalStageByLabel.get(point.label) ?? 0;
-            return total ? Number(((point.value / total) * 100).toFixed(1)) : 0;
-          }),
-          color: ['#8b5cf6', '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#94a3b8'][index],
-        })),
-      };
-      const stageHoursEvolutionOption = {
+      const topicHoursEvolutionOption = {
         tooltip: {
           trigger: 'axis',
           formatter: (
@@ -840,17 +836,15 @@ export function DetailDrawer({
             ].join('<br/>');
           },
         },
-        legend: { top: 0 },
-        grid: { left: 24, right: 18, top: 50, bottom: 40, containLabel: true },
+        grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
         xAxis: { type: 'category', data: trendLabels },
         yAxis: {
           type: 'value',
-          name: '工时',
         },
-        series: PROJECT_STAGE_ORDER.map((stageLabel, index) => ({
-          name: stageLabel,
+        series: topicNames.map((topicLabel, index) => ({
+          name: topicLabel,
           type: 'line',
-          stack: 'stageHours',
+          stack: 'topicHours',
           smooth: true,
           symbol: 'none',
           areaStyle: { opacity: 0.2 },
@@ -858,14 +852,28 @@ export function DetailDrawer({
           emphasis: { focus: 'series' },
           data: fillGroupedSeries(
             trendLabels,
-            groupedStageSeries.find((item) => item.stageLabel === stageLabel)?.points ?? [],
+            groupedTopicSeries.find((item) => item.topicLabel === topicLabel)?.points ?? [],
           ).map((point) => point.value),
-          color: ['#8b5cf6', '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#94a3b8'][index],
+          color: topicColor(topicLabel, index),
         })),
       };
-      const stageEvolutionActions = (
+      const topicLegend = (
         <>
-          <div className="mini-segment" aria-label="阶段演进显示方式">
+          {topicNames.map((topicLabel, index) => (
+            <span key={topicLabel} className="focus-chart-legend-item">
+              <span
+                className="focus-chart-legend-swatch"
+                style={{ ['--legend-color' as string]: topicColor(topicLabel, index) }}
+              />
+              <span>{topicLabel}</span>
+            </span>
+          ))}
+        </>
+      );
+
+      const topicViewActions = (
+        <>
+          <div className="mini-segment" aria-label="任务类型演进显示方式">
             {[
               ['share', '占比'],
               ['hours', '工时'],
@@ -873,8 +881,8 @@ export function DetailDrawer({
               <button
                 key={value}
                 type="button"
-                className={`mini-segment-button ${projectStageViewMode === value ? 'active' : ''}`.trim()}
-                onClick={() => setProjectStageViewMode(value as 'share' | 'hours')}
+                className={`mini-segment-button ${projectTopicViewMode === value ? 'active' : ''}`.trim()}
+                onClick={() => setProjectTopicViewMode(value as 'share' | 'hours')}
               >
                 {label}
               </button>
@@ -946,41 +954,28 @@ export function DetailDrawer({
           <div className="focus-chart-grid">
             <FocusChartShell
               title="项目趋势"
-              subtitle={`按${trendLabel}观察项目投入变化`}
               option={trendOption}
               isDark={isDark}
               isCompact={isCompact}
               isPhone={isPhone}
               actions={trendGranularityActions}
+              legend={trendLegend}
             />
-            <FocusChartShell title="人员构成" subtitle="项目内各成员投入分布" option={participantBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell title="人员构成" option={participantBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
             <FocusChartShell
               title="任务类型演进"
-              subtitle={`按${trendLabel}看任务类型占比变化`}
-              option={topicEvolutionOption}
-              isDark={isDark}
-              isCompact={isCompact}
-              isPhone={isPhone}
-              actions={trendGranularityActions}
-            />
-            <FocusChartShell
-              title="阶段演进"
-              subtitle={
-                projectStageViewMode === 'share'
-                  ? `按${trendLabel}看项目所处阶段占比变化`
-                  : `按${trendLabel}看各阶段总工时变化`
-              }
               option={
-                projectStageViewMode === 'share'
-                  ? stageEvolutionOption
-                  : stageHoursEvolutionOption
+                projectTopicViewMode === 'share'
+                  ? topicEvolutionOption
+                  : topicHoursEvolutionOption
               }
               isDark={isDark}
               isCompact={isCompact}
               isPhone={isPhone}
-              actions={stageEvolutionActions}
+              actions={topicViewActions}
+              legend={topicLegend}
             />
-            <FocusChartShell title="任务主题" subtitle="项目当前主要工作类型" option={topicBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell title="任务主题" option={topicBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
           </div>
         </>
       );
@@ -1015,20 +1010,10 @@ export function DetailDrawer({
       );
 
       return (
-        <>
-          <FocusTabs
-            labels={[
-              { key: 'overview', label: '概览' },
-              { key: 'tasks', label: '任务' },
-            ]}
-            activeTab={activeTab}
-            onChange={setActiveTab}
-          />
-          <div className="focus-tab-panel">
-            {activeTab === 'overview' ? overviewPanel : null}
-            {activeTab === 'tasks' ? tasksPanel : null}
-          </div>
-        </>
+        <div className="focus-tab-panel">
+          {activeTab === 'overview' ? overviewPanel : null}
+          {activeTab === 'tasks' ? tasksPanel : null}
+        </div>
       );
     }
 
@@ -1119,9 +1104,9 @@ export function DetailDrawer({
           </div>
           <p className="focus-brief">这个日期视角适合识别异常高负载、多人切换和项目投入是否过于集中。</p>
           <div className="focus-chart-grid">
-            <FocusChartShell title="员工负载" subtitle="当天每位成员投入情况" option={employeeBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
-            <FocusChartShell title="项目分布" subtitle="当天工时流向了哪些项目" option={projectBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
-            <FocusChartShell title="主题构成" subtitle="当天任务类型占比" option={topicPieOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell title="员工负载" option={employeeBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell title="项目分布" option={projectBarOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
+            <FocusChartShell title="主题构成" option={topicPieOption} isDark={isDark} isCompact={isCompact} isPhone={isPhone} />
           </div>
         </>
       );
@@ -1156,20 +1141,10 @@ export function DetailDrawer({
       );
 
       return (
-        <>
-          <FocusTabs
-            labels={[
-              { key: 'overview', label: '概览' },
-              { key: 'tasks', label: '任务' },
-            ]}
-            activeTab={activeTab}
-            onChange={setActiveTab}
-          />
-          <div className="focus-tab-panel">
-            {activeTab === 'overview' ? overviewPanel : null}
-            {activeTab === 'tasks' ? tasksPanel : null}
-          </div>
-        </>
+        <div className="focus-tab-panel">
+          {activeTab === 'overview' ? overviewPanel : null}
+          {activeTab === 'tasks' ? tasksPanel : null}
+        </div>
       );
     }
 
@@ -1262,7 +1237,6 @@ export function DetailDrawer({
           <div className="focus-chart-grid">
             <FocusChartShell
               title="项目趋势"
-              subtitle={`按${trendLabel}看该任务所在项目的近期投入`}
               option={{
                 tooltip: { trigger: 'axis' },
                 grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
@@ -1284,7 +1258,6 @@ export function DetailDrawer({
             />
             <FocusChartShell
               title="个人趋势"
-              subtitle={`按${trendLabel}看责任人的近期任务投入`}
               option={{
                 tooltip: { trigger: 'axis' },
                 grid: { left: 24, right: 18, top: 24, bottom: 40, containLabel: true },
@@ -1341,20 +1314,10 @@ export function DetailDrawer({
       );
 
       return (
-        <>
-          <FocusTabs
-            labels={[
-              { key: 'overview', label: '概览' },
-              { key: 'tasks', label: '关联任务' },
-            ]}
-            activeTab={activeTab}
-            onChange={setActiveTab}
-          />
-          <div className="focus-tab-panel">
-            {activeTab === 'overview' ? overviewPanel : null}
-            {activeTab === 'tasks' ? tasksPanel : null}
-          </div>
-        </>
+        <div className="focus-tab-panel">
+          {activeTab === 'overview' ? overviewPanel : null}
+          {activeTab === 'tasks' ? tasksPanel : null}
+        </div>
       );
     }
 
@@ -1387,6 +1350,7 @@ export function DetailDrawer({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          onClick={onClose}
         >
           <motion.aside
             className="detail-drawer"
@@ -1394,9 +1358,14 @@ export function DetailDrawer({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            onClick={(event) => event.stopPropagation()}
           >
             <div className="detail-header">
-              <div className="detail-header-spacer" />
+              {headerTabs ? (
+                <FocusTabs labels={headerTabs} activeTab={activeTab} onChange={setActiveTab} />
+              ) : (
+                <div className="detail-header-spacer" />
+              )}
               <button className="ghost-button" onClick={onClose} type="button">
                 关闭
               </button>

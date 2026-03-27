@@ -38,7 +38,7 @@ function groupDayHours(view: import('../types').AnalyticsView) {
   }));
 }
 
-function bubbleSizeByAnomalyDays(days: number) {
+function bubbleSizeByHeavyOvertimeDays(days: number) {
   if (days >= 8) return 44;
   if (days >= 4) return 32;
   return 22;
@@ -77,8 +77,8 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
   const highestSwitcher = [...view.employeeStats].sort(
     (left, right) => right.multiProjectRate - left.multiProjectRate,
   )[0];
-  const mostAnomalous = [...view.employeeStats].sort(
-    (left, right) => right.anomalyDayCount - left.anomalyDayCount,
+  const mostHeavyOvertime = [...view.employeeStats].sort(
+    (left, right) => right.heavyOvertimeDayCount - left.heavyOvertimeDayCount,
   )[0];
   const employeeRiskTop = [...view.employeeStats]
     .sort((left, right) => {
@@ -338,12 +338,12 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
         const name = String(value[3] ?? '');
         const multiProjectRate = formatNumber(Number(value[0] ?? 0), 1);
         const focusScore = formatNumber(Number(value[1] ?? 0), 1);
-        const anomalyDays = Number(value[2] ?? 0);
+        const heavyOvertimeDays = Number(value[2] ?? 0);
         return [
           `<strong>${name}</strong>`,
           `多项目率：${multiProjectRate}%`,
           `集中度：${focusScore}%`,
-          `异常日：${anomalyDays} 天`,
+          `重度加班日：${heavyOvertimeDays} 天`,
         ].join('<br/>');
       },
     },
@@ -352,11 +352,11 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
     series: [
       {
         type: 'scatter',
-        symbolSize: (value: number[]) => bubbleSizeByAnomalyDays(Number(value[2] ?? 0)),
+        symbolSize: (value: number[]) => bubbleSizeByHeavyOvertimeDays(Number(value[2] ?? 0)),
         data: view.employeeStats.map((employee) => [
           Number((employee.multiProjectRate * 100).toFixed(1)),
           Number((employee.focusScore * 100).toFixed(1)),
-          employee.anomalyDayCount,
+          employee.heavyOvertimeDayCount,
           employee.name,
         ]),
         itemStyle: { color: '#ff9f0a', opacity: 0.9 },
@@ -490,7 +490,7 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
           }
         >
           <div className="callout">
-            <strong>优先解读：工时流向、任务主题、异常员工日。</strong>
+            <strong>优先解读：工时流向、任务主题、重度加班与异常负载日。</strong>
             <span>趋势和相关性先当线索，不当结论。</span>
           </div>
         </Panel>
@@ -509,8 +509,8 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
               : '当前没有可解释的员工样本。'}
           </span>
           <span>
-            {mostAnomalous && mostAnomalous.anomalyDayCount > 0
-              ? `${mostAnomalous.name} 异常员工日最多，建议优先复盘。`
+            {mostHeavyOvertime && mostHeavyOvertime.heavyOvertimeDayCount > 0
+              ? `${mostHeavyOvertime.name} 重度加班日最多，建议优先复盘。`
               : '建议先看项目波动和工时流向。'}
           </span>
         </div>
@@ -667,10 +667,10 @@ export function OverviewPage({ dataset, view, filters, onOpenDetail }: OverviewP
       <ChartPanel
         title="员工风险分布"
         subtitle="谁更可能存在切换负担或投入分散"
-        note="横轴越靠右表示多项目率越高，纵轴越低表示集中度越差。气泡固定分 3 档：低风险 / 中风险 / 高风险，不再按异常日线性放大。"
+        note="横轴越靠右表示多项目率越高，纵轴越低表示集中度越差。气泡固定分 3 档：低风险 / 中风险 / 高风险，不再按重度加班日线性放大。"
         option={employeeRiskOption}
         source="derived"
-        method="多项目率 + 集中度 + 异常员工日联动"
+        method="多项目率 + 集中度 + 重度加班日联动"
         reliability="中"
         caution="这是管理复盘线索，不是绩效评分"
         onChartClick={(params) => {

@@ -24,7 +24,7 @@ interface EmployeesPageProps {
   onOpenDetail: (detail: DetailSelection) => void;
 }
 
-function bubbleSizeByAnomalyDays(days: number) {
+function bubbleSizeByHeavyOvertimeDays(days: number) {
   if (days >= 8) return 44;
   if (days >= 4) return 32;
   return 22;
@@ -41,7 +41,53 @@ function quantile(values: number[], ratio: number) {
   return sorted[lower] * (1 - weight) + sorted[upper] * weight;
 }
 
-function buildBoxplotStats(values: number[]) {
+function standardDeviation(values: number[]) {
+  if (values.length <= 1) return 0;
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const variance =
+    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
+  return Math.sqrt(variance);
+}
+
+function gaussianKernel(value: number) {
+  return Math.exp(-0.5 * value * value) / Math.sqrt(2 * Math.PI);
+}
+
+function buildViolinDensity(values: number[]) {
+  if (!values.length) return [] as Array<[number, number]>;
+
+  const sorted = [...values].sort((left, right) => left - right);
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+  const range = max - min;
+  const deviation = standardDeviation(sorted);
+  const fallbackBandwidth = Math.max(range / 6, 0.35);
+  const bandwidth =
+    deviation > 0 ? Math.max(1.06 * deviation * sorted.length ** -0.2, 0.25) : fallbackBandwidth;
+
+  if (range === 0) {
+    const center = min;
+    return [
+      [Math.max(center - 0.25, 0), 0],
+      [center, 1],
+      [center + 0.25, 0],
+    ];
+  }
+
+  const sampleCount = 36;
+  const densities = Array.from({ length: sampleCount + 1 }, (_, index) => {
+    const value = min + (range * index) / sampleCount;
+    const density =
+      sorted.reduce((sum, sample) => sum + gaussianKernel((value - sample) / bandwidth), 0) /
+      (sorted.length * bandwidth);
+    return [value, density] as [number, number];
+  });
+  const maxDensity = Math.max(...densities.map((item) => item[1]), 1);
+
+  return densities.map(([value, density]) => [value, density / maxDensity] as [number, number]);
+}
+
+function buildViolinStats(values: number[]) {
   if (!values.length) {
     return {
       min: 0,
@@ -49,7 +95,12 @@ function buildBoxplotStats(values: number[]) {
       median: 0,
       q3: 0,
       max: 0,
-      outliers: [] as number[],
+      sampleCount: 0,
+      spread: 0,
+      stdDev: 0,
+      overtimeDays: 0,
+      heavyOvertimeDays: 0,
+      density: [] as Array<[number, number]>,
     };
   }
 
@@ -58,19 +109,33 @@ function buildBoxplotStats(values: number[]) {
   const median = quantile(sorted, 0.5);
   const q3 = quantile(sorted, 0.75);
   const iqr = q3 - q1;
-  const lowerFence = q1 - iqr * 1.5;
-  const upperFence = q3 + iqr * 1.5;
-  const inRange = sorted.filter((value) => value >= lowerFence && value <= upperFence);
-  const outliers = sorted.filter((value) => value < lowerFence || value > upperFence);
+  const overtimeThreshold = analysisConfig.thresholds.standardDailyHours;
+  const heavyOvertimeThreshold = analysisConfig.thresholds.highIntensityOvertimeHours;
+  const overtimeDays = sorted.filter((value) => value > overtimeThreshold).length;
+  const heavyOvertimeDays = sorted.filter((value) => value > heavyOvertimeThreshold).length;
 
   return {
-    min: inRange[0] ?? sorted[0],
+    min: sorted[0],
     q1,
     median,
     q3,
-    max: inRange[inRange.length - 1] ?? sorted[sorted.length - 1],
-    outliers,
+    max: sorted[sorted.length - 1],
+    sampleCount: sorted.length,
+    spread: iqr,
+    stdDev: standardDeviation(sorted),
+    overtimeDays,
+    heavyOvertimeDays,
+    density: buildViolinDensity(sorted) as Array<[number, number]>,
   };
+}
+
+type ViolinStats = ReturnType<typeof buildViolinStats>;
+
+interface ViolinSeriesDatum {
+  value: [number];
+  density: Array<[number, number]>;
+  employeeName: string;
+  stats: ViolinStats;
 }
 
 function longestConsecutive(values: boolean[]) {
@@ -150,7 +215,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
       reworkHours,
       supportHours,
       multiProjectRate: employee.multiProjectRate,
-      anomalyDayCount: employee.anomalyDayCount,
+      heavyOvertimeDayCount: employee.heavyOvertimeDayCount,
     });
     return {
       ...employee,
@@ -173,12 +238,12 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
         const name = String(value[3] ?? '');
         const multiProjectRate = formatNumber(Number(value[0] ?? 0), 1);
         const focusScore = formatNumber(Number(value[1] ?? 0), 1);
-        const anomalyDays = Number(value[2] ?? 0);
+        const heavyOvertimeDays = Number(value[2] ?? 0);
         return [
           `<strong>${name}</strong>`,
           `多项目率：${multiProjectRate}%`,
           `集中度：${focusScore}%`,
-          `异常日：${anomalyDays} 天`,
+          `重度加班日：${heavyOvertimeDays} 天`,
         ].join('<br/>');
       },
     },
@@ -187,11 +252,11 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
     series: [
       {
         type: 'scatter',
-        symbolSize: (value: number[]) => bubbleSizeByAnomalyDays(Number(value[2] ?? 0)),
+        symbolSize: (value: number[]) => bubbleSizeByHeavyOvertimeDays(Number(value[2] ?? 0)),
         data: view.employeeStats.map((employee) => [
           Number((employee.multiProjectRate * 100).toFixed(1)),
           Number((employee.focusScore * 100).toFixed(1)),
-          employee.anomalyDayCount,
+          employee.heavyOvertimeDayCount,
           employee.name,
         ]),
         itemStyle: { color: '#ff9f0a', opacity: 0.9 },
@@ -358,81 +423,135 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
     ],
   };
 
-  const boxplotEmployees = [...view.employeeStats].slice(
-    0,
-    analysisConfig.displayLimits.employeeBoxplot,
-  );
-  const boxplotStats = boxplotEmployees.map((employee) => {
-    const values = view.employeeDays
-      .filter((day) => day.employeeId === employee.employeeId)
-      .map((day) => day.reportHour);
-    return buildBoxplotStats(values);
-  });
-  const boxplotValues = boxplotStats.map((item) => [
-    item.min,
-    item.q1,
-    item.median,
-    item.q3,
-    item.max,
+  const employeeDayHourMap = view.employeeDays.reduce<Record<string, number[]>>((accumulator, day) => {
+    if (!accumulator[day.employeeId]) {
+      accumulator[day.employeeId] = [];
+    }
+    accumulator[day.employeeId].push(day.reportHour);
+    return accumulator;
+  }, {});
+  const violinEmployees = [...view.employeeStats]
+    .map((employee) => {
+      const values = employeeDayHourMap[employee.employeeId] ?? [];
+      return {
+        ...employee,
+        violinStats: buildViolinStats(values),
+      };
+    })
+    .filter((employee) => employee.violinStats.sampleCount > 0)
+    .sort(
+      (left, right) =>
+        right.violinStats.spread - left.violinStats.spread ||
+        right.violinStats.stdDev - left.violinStats.stdDev ||
+        right.totalHours - left.totalHours,
+    )
+    .slice(0, 5);
+  const violinSeriesData: ViolinSeriesDatum[] = violinEmployees.map((employee, employeeIndex) => ({
+    value: [employeeIndex],
+    density: employee.violinStats.density as Array<[number, number]>,
+    employeeName: employee.name,
+    stats: employee.violinStats,
+  }));
+  const violinMedianData = violinEmployees.map((employee, employeeIndex) => [
+    employeeIndex,
+    employee.violinStats.median,
   ]);
-  const boxplotOutliers = boxplotStats.flatMap((item, employeeIndex) =>
-    item.outliers.map((value) => [employeeIndex, value]),
-  );
-  const boxplotOption = {
+  const violinOption = {
     tooltip: {
       trigger: 'item',
       formatter: (params: {
-        componentSubType?: string;
+        seriesType?: string;
         name?: string;
-        data?: number[];
+        data?: number[] | ViolinSeriesDatum;
         value?: number[];
         seriesName?: string;
         dataIndex?: number;
       }) => {
-        if (params.componentSubType === 'scatter') {
+        if (params.seriesName === '中位数') {
           const value = params.value ?? [];
-          const employee = boxplotEmployees[Number(value[0] ?? 0)];
+          const employee = violinEmployees[Number(value[0] ?? 0)];
+          const sampleCount = employee?.violinStats.sampleCount ?? 0;
+          const overtimeDays = employee?.violinStats.overtimeDays ?? 0;
           return [
             `<strong>${employee?.name ?? String(params.name ?? '')}</strong>`,
-            `离群日工时：${formatNumber(Number(value[1] ?? 0))} h`,
-            '说明：该值落在 1.5 IQR 之外，代表极端工作日。',
+            `中位数：${formatNumber(Number(value[1] ?? 0))} h`,
+            `样本天数：${sampleCount}`,
+            `加班日：${overtimeDays} 天${sampleCount ? `（${formatNumber((overtimeDays / sampleCount) * 100)}%）` : ''}`,
           ].join('<br/>');
         }
 
-        const data = params.data ?? [];
-        const employee = boxplotEmployees[params.dataIndex ?? -1];
-        const stats = boxplotStats[params.dataIndex ?? -1];
+        const violinDatum = violinSeriesData[params.dataIndex ?? -1];
+        const stats = violinDatum?.stats;
+        const overtimeShare =
+          stats && stats.sampleCount > 0
+            ? `（${formatNumber((stats.overtimeDays / stats.sampleCount) * 100)}%）`
+            : '';
         return [
-          `<strong>${employee?.name ?? String(params.name ?? '')}</strong>`,
-          `样本天数：${view.employeeDays.filter((day) => day.employeeId === employee?.employeeId).length}`,
-          `须线最低：${formatNumber(Number(data[0] ?? 0))} h`,
-          `Q1：${formatNumber(Number(data[1] ?? 0))} h`,
-          `中位数：${formatNumber(Number(data[2] ?? 0))} h`,
-          `Q3：${formatNumber(Number(data[3] ?? 0))} h`,
-          `须线最高：${formatNumber(Number(data[4] ?? 0))} h`,
-          `离群点：${stats?.outliers.length ?? 0} 个`,
+          `<strong>${violinDatum?.employeeName ?? String(params.name ?? '')}</strong>`,
+          `样本天数：${stats?.sampleCount ?? 0}`,
+          `加班日：${stats?.overtimeDays ?? 0} 天${overtimeShare}`,
+          `重度加班日：${stats?.heavyOvertimeDays ?? 0} 天（>${analysisConfig.thresholds.highIntensityOvertimeHours}h）`,
+          `常见波动范围：${formatNumber(stats?.q1 ?? 0)} - ${formatNumber(stats?.q3 ?? 0)} h`,
+          `中位数：${formatNumber(stats?.median ?? 0)} h`,
+          `全样本范围：${formatNumber(stats?.min ?? 0)} - ${formatNumber(stats?.max ?? 0)} h`,
+          `IQR：${formatNumber(stats?.spread ?? 0)} h`,
         ].join('<br/>');
       },
     },
     grid: { left: 24, right: 20, top: 24, bottom: 40, containLabel: true },
     xAxis: {
       type: 'category',
-      data: boxplotEmployees.map((item) => item.name),
-      axisLabel: { rotate: 30 }, // 增加旋转系数
+      data: violinEmployees.map((item) => item.name),
+      axisLabel: { rotate: 28 },
     },
     yAxis: { type: 'value', name: '日工时' },
     series: [
       {
-        type: 'boxplot',
-        data: boxplotValues,
-        itemStyle: { color: '#93c5fd', borderColor: '#2563eb' },
+        name: '工时分布',
+        type: 'custom',
+        coordinateSystem: 'cartesian2d',
+        data: violinSeriesData,
+        renderItem: (
+          params: { dataIndex: number; dataIndexInside: number },
+          api: {
+            value: (dimension: number) => number;
+            coord: (value: [number, number]) => [number, number];
+            size: (value: [number, number]) => [number, number];
+          },
+        ) => {
+          const data = violinSeriesData[params.dataIndex];
+          if (!data || data.density.length < 2) {
+            return null;
+          }
+          const employeeIndex = Number(api.value(0));
+          const categoryWidth = api.size([1, 0])[0] || 0;
+          const maxHalfWidth = categoryWidth * 0.32;
+          const leftPoints = data.density.map(([hour, density]) => {
+            const [x, y] = api.coord([employeeIndex, hour]);
+            return [x - maxHalfWidth * density, y];
+          });
+          const rightPoints = [...data.density].reverse().map(([hour, density]) => {
+            const [x, y] = api.coord([employeeIndex, hour]);
+            return [x + maxHalfWidth * density, y];
+          });
+          return {
+            type: 'polygon',
+            shape: { points: [...leftPoints, ...rightPoints] },
+            style: {
+              fill: 'rgba(14, 165, 233, 0.28)',
+              stroke: '#0284c7',
+              lineWidth: 2,
+            },
+          };
+        },
       },
       {
-        name: '离群点',
+        name: '中位数',
         type: 'scatter',
-        data: boxplotOutliers,
-        itemStyle: { color: '#ef4444' },
-        symbolSize: 10,
+        data: violinMedianData,
+        symbol: 'diamond',
+        symbolSize: 12,
+        itemStyle: { color: '#0f172a', borderColor: '#ffffff', borderWidth: 2 },
       },
     ],
   };
@@ -505,6 +624,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
       riskScore: number;
       anomalyCount: number;
       anomalyDayCount: number;
+      heavyOvertimeDayCount: number;
       taskCount: number;
       multiProjectRate: number;
       focusScore: number;
@@ -524,6 +644,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
           granularityBucketLabel(task.date, trendGranularity) === bucketLabel,
       );
       const anomalyDayCount = bucketDays.filter((day) => day.isAnomalous).length;
+      const heavyOvertimeDayCount = bucketDays.filter((day) => day.isHeavyOvertime).length;
       const totalHours = bucketDays.reduce((sum, day) => sum + day.reportHour, 0);
       const multiProjectRate = bucketDays.length
         ? bucketDays.filter((day) => day.projectCount > 1).length / bucketDays.length
@@ -532,6 +653,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
       const riskScore = getEmployeeRiskMetric({
         multiProjectRate,
         focusScore,
+        heavyOvertimeDayCount,
         anomalyDayCount,
         taskCount: bucketTasks.length,
       }).value;
@@ -540,6 +662,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
         riskScore,
         anomalyCount: bucketDays.reduce((sum, day) => sum + day.anomalyScore, 0),
         anomalyDayCount,
+        heavyOvertimeDayCount,
         taskCount: bucketTasks.length,
         multiProjectRate,
         focusScore,
@@ -585,7 +708,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
           `${bucketTitle}：${currentBucketLabel}`,
           `${loadCalendarLabel}：${formatNumber(Number(value[2] ?? 0))}${loadCalendarUnit === 'h' ? ' h' : loadCalendarUnit === '分' ? ' 分' : ' 个'}`,
           `活跃天数：${meta?.activeDays ?? 0} 天`,
-          `异常员工日：${meta?.anomalyDayCount ?? 0} 天`,
+          `异常负载日：${meta?.anomalyDayCount ?? 0} 天`,
           `多项目率：${formatPercent(meta?.multiProjectRate ?? 0)}`,
           `集中度：${formatPercent(meta?.focusScore ?? 0)}`,
           `任务数：${meta?.taskCount ?? 0}`,
@@ -690,7 +813,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
           `返工类工时占比：${formatPercent(employee.reworkShare)}`,
           `现场支持占比：${formatPercent(employee.supportShare)}`,
           `多项目率：${formatPercent(employee.multiProjectRate)}`,
-          `异常日：${employee.anomalyDayCount} 天`,
+          `重度加班日：${employee.heavyOvertimeDayCount} 天`,
         ].join('<br/>');
       },
     },
@@ -717,7 +840,8 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
             <MetaPill tone="derived">规则推导</MetaPill>
             <span>多项目率 = 多项目工作日 / 全部工作日</span>
             <span>集中度 = 单一项目最大工时占比</span>
-            <span>异常日 = 高工时 / 高碎片 / 高切换叠加</span>
+            <span>{`重度加班日 = >${analysisConfig.thresholds.highIntensityOvertimeHours}h`}</span>
+            <span>{`异常负载日 = ≥${analysisConfig.thresholds.anomalyDailyHours}h 且伴随碎片/切换/核验等复合信号`}</span>
           </div>
         }
       >
@@ -726,7 +850,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
             <strong>优先复盘对象</strong>
             <p>
               {summaryEmployee
-                ? `${summaryEmployee.name} 当前风险分最高，多项目率 ${formatPercent(summaryEmployee.multiProjectRate)}，异常日 ${summaryEmployee.anomalyDayCount} 天。`
+                ? `${summaryEmployee.name} 当前风险分最高，多项目率 ${formatPercent(summaryEmployee.multiProjectRate)}，重度加班日 ${summaryEmployee.heavyOvertimeDayCount} 天。`
                 : '当前没有需要复盘的员工样本。'}
             </p>
           </div>
@@ -764,7 +888,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
         note={`横轴越靠右表示多项目率越高，纵轴越低表示集中度越低。当前最值得先点开的是 ${summaryEmployee?.name ?? '暂无'}。`}
         option={riskScatterOption}
         source="derived"
-        method="多项目率 + 集中度 + 异常员工日"
+        method="多项目率 + 集中度 + 重度加班日 + 异常负载日"
         reliability="中"
         caution="这是复盘优先级线索，不是绩效结论"
         onChartClick={(params) => {
@@ -892,7 +1016,7 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
         note={`当前救火压力最高的是 ${fireEmployee?.name ?? '暂无'}，更适合优先复盘其任务结构和项目迁移。`}
         option={firefightingOption}
         source="derived"
-        method="返工类工时占比 + 现场支持占比 + 多项目率 + 异常日"
+        method={`返工类工时占比 + 现场支持占比 + 多项目率 + >${analysisConfig.thresholds.highIntensityOvertimeHours}h 重度加班日`}
         reliability="中"
         caution="这是流程和负载信号，不是个人绩效结论"
         onChartClick={(params) => {
@@ -910,14 +1034,14 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
       />
 
       <ChartPanel
-        title="员工工时箱线图"
+        title="员工工时小提琴图"
         subtitle="看团队内谁的日工时波动更大"
-        note="箱体表示常见波动范围，须线按 1.5 IQR 计算，极端工作日会单独显示为红色离群点。"
-        option={boxplotOption}
+        note="这里只展示波动最大的 5 位员工。小提琴越宽，代表该工时段出现得越频繁；黑色菱形是中位数。这里的重点是看加班分布和长工时尾部，不直接把 >7.5h 视为异常。"
+        option={violinOption}
         source="derived"
-        method="按员工统计日工时分布的四分位数、1.5 IQR 须线与离群点"
+        method={`按员工日工时做核密度分布，并统计 >${analysisConfig.thresholds.standardDailyHours}h 加班日与 >${analysisConfig.thresholds.highIntensityOvertimeHours}h 重度加班日`}
         reliability="中高"
-        caution="样本少的员工箱线图会更不稳定"
+        caution="样本少的员工小提琴形状会更不稳定；这张图更适合看分布，不适合单独作为异常判定"
       />
 
       <ChartPanel

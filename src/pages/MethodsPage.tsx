@@ -75,9 +75,9 @@ const METRIC_GROUPS: MetricDefinitionGroup[] = [
     metrics: [
       {
         name: '员工风险分',
-        explanation: '用于给员工复盘优先级排序的综合分数，重点反映切换负担、投入分散和异常工作日叠加后的风险线索。',
-        formula: '多项目率 × 45 + (1 - 集中度) × 30 + 异常日数量 × 6 + min(任务数 / 40, 1) × 19',
-        fields: ['employeeDays.projectCount', 'employeeDays.isAnomalous', 'tasks.reportHour', 'tasks.projectName', 'employee.taskCount'],
+        explanation: '用于给员工复盘优先级排序的综合分数，重点反映切换负担、投入分散、重度加班和异常负载日叠加后的风险线索。',
+        formula: '多项目率 × 42 + (1 - 集中度) × 28 + min(重度加班日 / 6, 1) × 18 + 异常负载日 × 4 + min(任务数 / 40, 1) × 16',
+        fields: ['employeeDays.projectCount', 'employeeDays.isHeavyOvertime', 'employeeDays.isAnomalous', 'tasks.reportHour', 'tasks.projectName', 'employee.taskCount'],
         applies: ['团队内部识别更值得优先复盘的员工样本', '辅助分析切换负担、工时分散和任务堆叠'],
         avoid: ['不适合用于绩效考核', '不适合跨团队、跨岗位横向比较'],
         tone: 'derived',
@@ -86,8 +86,8 @@ const METRIC_GROUPS: MetricDefinitionGroup[] = [
       {
         name: '救火指数',
         explanation: '用于识别员工是否长期处于返工、支持、插单处理等救火型工作状态。',
-        formula: '返工占比 × 44 + 现场支持占比 × 22 + 多项目率 × 20 + min(异常日 / 8, 1) × 14',
-        fields: ['tasks.topicLabel', 'tasks.taskName', 'tasks.reportHour', 'employee.multiProjectRate', 'employee.anomalyDayCount'],
+        formula: '返工占比 × 44 + 现场支持占比 × 22 + 多项目率 × 20 + min(重度加班日 / 6, 1) × 14',
+        fields: ['tasks.topicLabel', 'tasks.taskName', 'tasks.reportHour', 'employee.multiProjectRate', 'employee.heavyOvertimeDayCount'],
         applies: ['识别流程性救火、高支持负担、频繁插单', '作为排班、资源分配、流程治理的线索'],
         avoid: ['不适合作为个人工作价值判断', '不适合脱离任务详情单独解读'],
         tone: 'derived',
@@ -118,25 +118,15 @@ const METRIC_GROUPS: MetricDefinitionGroup[] = [
   {
     id: 'methods-project-metrics',
     title: '项目结构与节奏',
-    description: '这组指标主要帮助判断项目是在建设、修补、维护还是多线并行推进。',
+    description: '这组指标主要帮助判断项目返工压力、投入趋势以及多人浅介入等结构特征。',
     metrics: [
       {
         name: '项目返工占比',
         explanation: '衡量某项目总工时中，返工、修补、反馈处理等工时占比。',
         formula: '返工类工时 / 项目总工时',
         fields: ['tasks.taskName', 'tasks.topicLabel', 'tasks.reportHour'],
-        applies: ['识别修补型占比偏高的项目', '作为项目复盘、阶段判断、工作流治理的辅助线索'],
+        applies: ['识别返工压力偏高的项目', '作为项目复盘和任务规则补充的辅助线索'],
         avoid: ['不适合单独判断项目成败', '不适合忽略里程碑和上线节点直接横比'],
-        tone: 'derived',
-        sourceLabel: '规则推导',
-      },
-      {
-        name: '项目阶段占比',
-        explanation: '描述项目工时在需求/设计、开发、联调/测试、上线/发布、维护/反馈等阶段上的分布。',
-        formula: '某阶段工时 / 项目总工时',
-        fields: ['tasks.taskName', 'tasks.topicLabel', 'tasks.reportHour', 'detectTaskStage'],
-        applies: ['观察项目是否长期停留在维护/反馈阶段', '查看阶段迁移是否符合预期节奏'],
-        avoid: ['不适合当作标准项目管理流程审计结果', '不适合在任务命名极不规范时直接下结论'],
         tone: 'derived',
         sourceLabel: '规则推导',
       },
@@ -242,7 +232,7 @@ const SOURCE_GUIDES = [
   {
     tone: 'derived' as const,
     title: '规则推导',
-    body: '由真实数据继续计算得到，例如异常分、集中度、阶段占比和主题分类。',
+    body: '由真实数据继续计算得到，例如异常分、集中度、任务类型占比和主题分类。',
   },
   {
     tone: 'mock' as const,

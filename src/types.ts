@@ -1,6 +1,7 @@
 export type PageKey =
   | 'overview'
   | 'agent'
+  | 'r_lab'
   | 'methods'
   | 'settings'
   | 'employees'
@@ -61,6 +62,8 @@ export interface EmployeeDay {
   verifyHour: number;
   taskCount: number;
   projectCount: number;
+  isOvertime: boolean;
+  isHeavyOvertime: boolean;
   isAnomalous: boolean;
   anomalyScore: number;
 }
@@ -192,6 +195,8 @@ export interface EmployeeStat {
   taskCount: number;
   multiProjectRate: number;
   focusScore: number;
+  overtimeDayCount: number;
+  heavyOvertimeDayCount: number;
   anomalyDayCount: number;
 }
 

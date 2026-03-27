@@ -34,6 +34,11 @@ function hasSeriesType(series: ChartOption | ChartOption[] | undefined, type: st
   return seriesItems(series).some((item) => item?.type === type);
 }
 
+function gridItems(grid: ChartOption | ChartOption[] | undefined) {
+  if (!grid) return [];
+  return Array.isArray(grid) ? grid : [grid];
+}
+
 function normalizeVisualMap(
   visualMap: ChartOption | ChartOption[] | undefined,
   isCompact: boolean,
@@ -301,6 +306,8 @@ export function withChartTheme(
   const lineColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(15, 23, 42, 0.06)';
   const secondaryTextColor = isDark ? '#c7c7cc' : '#5b5b60';
   const optionGrid = option.grid ?? {};
+  const gridList = gridItems(option.grid);
+  const hasGridArray = Array.isArray(option.grid);
   const hasHeatmapSeries = hasSeriesType(option.series, 'heatmap');
   const legend = option.legend
     ? {
@@ -350,7 +357,7 @@ export function withChartTheme(
   }
 
   if (hasXAxisName) {
-    minimumBottom = Math.max(minimumBottom, isCompact ? 54 : 58);
+    minimumBottom = Math.max(minimumBottom, isCompact ? 50 : 50);
   }
 
   if (hasBottomVisualMap && hasXAxisName) {
@@ -403,17 +410,30 @@ export function withChartTheme(
     visualMap,
     xAxis,
     yAxis,
-    grid: {
-      ...optionGrid,
-      bottom: isCompact
-        ? compactGridInset(optionGrid.bottom, compactBottom)
-        : ensureGridMin(optionGrid.bottom, minimumBottom),
-      left: ensureGridMin(optionGrid.left, isCompact ? 36 : 45),
-      right: ensureGridMin(optionGrid.right, 25),
-      top: isCompact
-        ? compactGridInset(optionGrid.top, compactTop, compactTopMax)
-        : ensureGridMin(optionGrid.top, 45),
-      containLabel: optionGrid.containLabel ?? true,
-    },
+    grid: hasGridArray
+      ? gridList.map((grid) => ({
+          ...grid,
+          bottom: isCompact
+            ? compactGridInset(grid.bottom, compactBottom)
+            : ensureGridMin(grid.bottom, minimumBottom),
+          left: ensureGridMin(grid.left, isCompact ? 34 : 38),
+          right: ensureGridMin(grid.right, 18),
+          top: isCompact
+            ? compactGridInset(grid.top, compactTop, compactTopMax)
+            : ensureGridMin(grid.top, 40),
+          containLabel: grid.containLabel ?? true,
+        }))
+      : {
+          ...optionGrid,
+          bottom: isCompact
+            ? compactGridInset(optionGrid.bottom, compactBottom)
+            : ensureGridMin(optionGrid.bottom, minimumBottom),
+          left: ensureGridMin(optionGrid.left, isCompact ? 34 : 38),
+          right: ensureGridMin(optionGrid.right, 18),
+          top: isCompact
+            ? compactGridInset(optionGrid.top, compactTop, compactTopMax)
+            : ensureGridMin(optionGrid.top, 40),
+          containLabel: optionGrid.containLabel ?? true,
+        },
   };
 }

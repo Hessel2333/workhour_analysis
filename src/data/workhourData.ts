@@ -90,6 +90,8 @@ export function parseWorkhourSource(source: string): BaseDataset {
       }
 
       const projectCount = new Set(dayTasks.map((item) => item.ProjectName)).size;
+      const isOvertime = detail.ReportHour > analysisConfig.thresholds.standardDailyHours;
+      const isHeavyOvertime = detail.ReportHour > analysisConfig.thresholds.highIntensityOvertimeHours;
       const anomalyScore =
         (detail.ReportHour >= analysisConfig.thresholds.anomalyDailyHours ? 1 : 0) +
         (dayTasks.length >= analysisConfig.thresholds.highTaskFragmentationCount ? 1 : 0) +
@@ -106,6 +108,8 @@ export function parseWorkhourSource(source: string): BaseDataset {
         verifyHour: detail.VerifyHour,
         taskCount: dayTasks.length,
         projectCount,
+        isOvertime,
+        isHeavyOvertime,
         isAnomalous: anomalyScore >= analysisConfig.thresholds.anomalyScoreThreshold,
         anomalyScore,
       });

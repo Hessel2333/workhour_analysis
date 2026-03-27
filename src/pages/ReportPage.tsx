@@ -32,15 +32,23 @@ export function ReportPage({ view }: ReportPageProps) {
         ...employee,
         overtimeHours: employeeOvertime.reduce((sum, record) => sum + record.overtimeHours, 0),
         overloadedDayCount: days.filter(
-          (day) => day.reportHour >= analysisConfig.thresholds.standardDailyHours,
+          (day) => day.reportHour > analysisConfig.thresholds.standardDailyHours,
         ).length,
       };
     })
     .sort((left, right) => {
       const leftScore =
-        left.totalHours + left.overtimeHours * 1.4 + left.anomalyDayCount * 12 + left.multiProjectRate * 40;
+        left.totalHours +
+        left.overtimeHours * 1.4 +
+        left.heavyOvertimeDayCount * 12 +
+        left.anomalyDayCount * 6 +
+        left.multiProjectRate * 40;
       const rightScore =
-        right.totalHours + right.overtimeHours * 1.4 + right.anomalyDayCount * 12 + right.multiProjectRate * 40;
+        right.totalHours +
+        right.overtimeHours * 1.4 +
+        right.heavyOvertimeDayCount * 12 +
+        right.anomalyDayCount * 6 +
+        right.multiProjectRate * 40;
       return rightScore - leftScore;
     })
     .slice(0, 5);
@@ -105,7 +113,7 @@ export function ReportPage({ view }: ReportPageProps) {
     highestLoadEmployee
       ? `${highestLoadEmployee.name} 是当前最重负载员工，总工时 ${formatNumber(
           highestLoadEmployee.totalHours,
-        )} h，异常日 ${highestLoadEmployee.anomalyDayCount} 天，多项目率 ${formatPercent(
+        )} h，重度加班日 ${highestLoadEmployee.heavyOvertimeDayCount} 天，多项目率 ${formatPercent(
           highestLoadEmployee.multiProjectRate,
         )}。`
       : null,
@@ -152,9 +160,9 @@ export function ReportPage({ view }: ReportPageProps) {
           hint="当前筛选后的投入体量"
         />
         <MetricCard
-          label="异常员工日占比"
+          label="异常负载日占比"
           value={formatPercent(view.globalMetrics.anomalyDayRate)}
-          hint="高工时、高碎片或核验缺口的叠加情况"
+          hint={`≥${analysisConfig.thresholds.anomalyDailyHours}h 且伴随碎片、切换或核验缺口的异常负载`}
         />
         <MetricCard
           label="数据覆盖率"
@@ -224,7 +232,7 @@ export function ReportPage({ view }: ReportPageProps) {
         <Panel
           title="高负载员工清单"
           subtitle="仅作资源调度参考，不作绩效结论"
-          note="综合总工时、加班小时、异常日和多项目率排序。"
+          note="综合总工时、加班小时、重度加班日、异常负载日和多项目率排序。"
         >
           <ol className="report-list report-list-numbered">
             {highLoadEmployees.map((employee) => (
@@ -232,7 +240,7 @@ export function ReportPage({ view }: ReportPageProps) {
                 {employee.name}
                 {`：总工时 ${formatNumber(employee.totalHours)} h，估算加班 ${formatNumber(
                   employee.overtimeHours,
-                )} h，异常日 ${employee.anomalyDayCount} 天，多项目率 ${formatPercent(
+                )} h，重度加班日 ${employee.heavyOvertimeDayCount} 天，异常负载日 ${employee.anomalyDayCount} 天，多项目率 ${formatPercent(
                   employee.multiProjectRate,
                 )}。`}
               </li>

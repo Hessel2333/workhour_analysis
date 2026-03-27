@@ -7,7 +7,6 @@ import { Panel } from '../components/Panel';
 import { analysisConfig } from '../config/analysisConfig';
 import { topicColor } from '../lib/chartColors';
 import { formatNumber, formatPercent } from '../lib/format';
-import { classifyTaskWorkstream, WORKSTREAM_ORDER } from '../lib/taskSignals';
 import { buildTopicExplanation } from '../lib/topicExplain';
 import type { AnalyticsView, DetailSelection } from '../types';
 
@@ -61,16 +60,7 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
   ).length;
   const pendingTasks = view.tasks.filter((task) => task.topicLabel === '待确认');
   const reviewTasksWithoutPending = reviewTasks.filter((task) => task.topicLabel !== '待确认');
-  const workstreamHours = WORKSTREAM_ORDER.map((label) => ({
-    label,
-    totalHours: view.tasks
-      .filter((task) => classifyTaskWorkstream(task) === label)
-      .reduce((sum, task) => sum + task.reportHour, 0),
-  })).filter((item) => item.totalHours > 0);
-  const totalWorkstreamHours = workstreamHours.reduce((sum, item) => sum + item.totalHours, 0);
-  const dominantWorkstream = [...workstreamHours].sort((left, right) => right.totalHours - left.totalHours)[0];
-  const reworkLikeHours = workstreamHours.find((item) => item.label === '修补型')?.totalHours ?? 0;
-  const buildLikeHours = workstreamHours.find((item) => item.label === '建设型')?.totalHours ?? 0;
+  const topTopic = topicRank[0];
 
   const topicOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -86,49 +76,6 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
           color: (params: { dataIndex: number }) =>
             topicColor(topicRank[params.dataIndex]?.topicLabel ?? '', params.dataIndex),
         },
-      },
-    ],
-  };
-
-  const portraitOption = {
-    tooltip: {
-      trigger: 'item',
-      formatter: (params: { name?: string; value?: number }) => {
-        const hours = Number(params.value ?? 0);
-        return [
-          `<strong>${String(params.name ?? '')}</strong>`,
-          `工时：${formatNumber(hours)} h`,
-          `占比：${formatPercent(totalWorkstreamHours ? hours / totalWorkstreamHours : 0)}`,
-        ].join('<br/>');
-      },
-    },
-    series: [
-      {
-        type: 'pie',
-        radius: ['48%', '72%'],
-        center: ['50%', '52%'],
-        label: {
-          formatter: '{b}\n{d}%',
-          color: '#0f172a',
-          fontWeight: 600,
-        },
-        labelLine: { length: 10, length2: 8 },
-        data: workstreamHours.map((item) => ({
-          name: item.label,
-          value: Number(item.totalHours.toFixed(1)),
-          itemStyle: {
-            color:
-              item.label === '建设型'
-                ? '#2563eb'
-                : item.label === '修补型'
-                  ? '#ef4444'
-                  : item.label === '支撑型'
-                    ? '#f59e0b'
-                    : item.label === '成长型'
-                      ? '#8b5cf6'
-                      : '#94a3b8',
-          },
-        })),
       },
     ],
   };
@@ -219,15 +166,15 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
     <div className="page-grid">
       <Panel
         title="任务画像"
-        subtitle="先看公司时间主要花在建设、修补还是支撑工作"
-        note="长周期数据下，任务分类已经更稳定，但复杂语义任务仍建议人工复核。"
+        subtitle="先看当前样本里的主要任务主题"
+        note="这里直接使用任务主题本身，不再额外映射成建设、修补或支撑等二级分类。"
         className="panel-wide panel-strip"
       >
         <div className="callout">
-          <strong>{dominantWorkstream ? `${dominantWorkstream.label} 是当前占比最高的任务类型。` : '当前没有可解释的任务画像。'}</strong>
+          <strong>{topTopic ? `${topTopic.topicLabel} 是当前工时占比最高的任务主题。` : '当前没有足够任务样本用于画像。'}</strong>
           <span>
-            {buildLikeHours > 0 || reworkLikeHours > 0
-              ? `建设型工时 ${formatNumber(buildLikeHours)}h，修补型工时 ${formatNumber(reworkLikeHours)}h。先看整体画像，再回看复核清单。`
+            {topTopic
+              ? `${topTopic.topicLabel} 累计 ${formatNumber(topTopic.totalHours)}h，共 ${topTopic.taskCount} 条任务。建议先看主题分布，再回到复核清单补规则。`
               : `当前共 ${view.tasks.length} 条任务，未分类 ${uncategorizedCount} 条，待确认 ${pendingCount} 条，低可信度 ${lowConfidenceCount} 条。`}
           </span>
         </div>
@@ -251,21 +198,6 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
           <span>这轮改动的目标不是让分类“看起来更聪明”，而是让它能被复核、能被修正。</span>
         </div>
       </Panel>
-
-      <ChartPanel
-        title="公司整体任务类型画像"
-        subtitle="整体时间更偏建设、修补还是支撑工作"
-        note={
-          dominantWorkstream
-            ? `${dominantWorkstream.label} 当前占比最高，${reworkLikeHours > buildLikeHours ? '修补型工时已经高于建设型，建议重点关注返工压力。' : '整体仍以建设型工作为主。'}`
-            : '当前没有足够任务样本用于画像。'
-        }
-        option={portraitOption}
-        source="derived"
-        method="按任务主题归并为建设型 / 修补型 / 支撑型 / 成长型 / 待确认"
-        reliability="中"
-        caution="整体画像适合看公司工作重心，不适合替代项目级或员工级复盘"
-      />
 
       <ChartPanel
         title="主题分类"

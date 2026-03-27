@@ -107,6 +107,8 @@ function aggregateEmployeeDays(tasks: Task[], dataset: BaseDataset) {
       verifyHour: task.verifyHour,
       taskCount: 1,
       projectCount: existingProjects.size,
+      isOvertime: false,
+      isHeavyOvertime: false,
       isAnomalous: false,
       anomalyScore: 0,
     });
@@ -115,6 +117,8 @@ function aggregateEmployeeDays(tasks: Task[], dataset: BaseDataset) {
   return Array.from(dayMap.values())
     .map((day) => {
       const projects = projectMap.get(`${day.employeeId}:${day.date}`) ?? new Set();
+      const isOvertime = day.reportHour > analysisConfig.thresholds.standardDailyHours;
+      const isHeavyOvertime = day.reportHour > analysisConfig.thresholds.highIntensityOvertimeHours;
       const anomalyScore =
         (day.reportHour >= analysisConfig.thresholds.anomalyDailyHours ? 1 : 0) +
         (day.taskCount >= analysisConfig.thresholds.highTaskFragmentationCount ? 1 : 0) +
@@ -124,6 +128,8 @@ function aggregateEmployeeDays(tasks: Task[], dataset: BaseDataset) {
       return {
         ...day,
         projectCount: projects.size,
+        isOvertime,
+        isHeavyOvertime,
         anomalyScore,
         isAnomalous: anomalyScore >= analysisConfig.thresholds.anomalyScoreThreshold,
       };
@@ -183,6 +189,8 @@ function computeEmployeeStats(dataset: BaseDataset, employeeDays: EmployeeDay[],
         taskCount: employeeTasks.length,
         multiProjectRate: multiProjectRateMetric.value,
         focusScore: focusScoreMetric.value,
+        overtimeDayCount: days.filter((day) => day.isOvertime).length,
+        heavyOvertimeDayCount: days.filter((day) => day.isHeavyOvertime).length,
         anomalyDayCount: days.filter((day) => day.isAnomalous).length,
       };
     })
@@ -355,8 +363,8 @@ function buildReportBlocks(
         : '当前筛选范围内没有可展示的项目。',
     },
     {
-      title: '异常员工日',
-      body: `异常员工日占比 ${formatPercent(globalMetrics.anomalyDayRate)}，建议重点关注高工时叠加高碎片的工作日，以及同时跨多个项目的排班。`,
+      title: '异常负载日',
+      body: `异常负载日占比 ${formatPercent(globalMetrics.anomalyDayRate)}，建议重点关注 ≥${analysisConfig.thresholds.anomalyDailyHours}h 且叠加高碎片、高切换或核验缺口的工作日。`,
     },
     {
       title: '数据质量限制',
@@ -449,8 +457,8 @@ function buildAgentReport(
     }
 
     if (employee.anomalyDayCount >= analysisConfig.thresholds.employeeIssueAnomalyDays) {
-      evidence.push(`异常员工日 ${employee.anomalyDayCount} 天，建议结合每日任务切分复核。`);
-      advice.push('让项目经理复盘异常日的任务拆分是否过碎，是否存在临时插单。');
+      evidence.push(`异常负载日 ${employee.anomalyDayCount} 天，建议结合每日任务切分复核。`);
+      advice.push('让项目经理复盘这些异常负载日的任务拆分是否过碎，是否存在临时插单。');
       score += 2;
     }
 
@@ -479,7 +487,7 @@ function buildAgentReport(
         subject: employee.name,
         subjectMasked: employee.name,
         subjectReal: employee.name,
-        summary: '该成员在当前样本中表现出过载、切换或异常日聚集特征。',
+        summary: '该成员在当前样本中表现出过载、切换或异常负载日聚集特征。',
         evidence,
         recommendations: Array.from(new Set(advice)),
         score,
@@ -511,7 +519,7 @@ function buildAgentReport(
 
     if (project.topicDiversity >= analysisConfig.thresholds.projectHighTopicDiversity) {
       evidence.push(`主题复杂度 ${project.topicDiversity}，同一项目同时覆盖较多工作类型。`);
-      advice.push('将设计、开发、联调、文档拆成阶段目标，减少同周期混跑。');
+      advice.push('将设计、开发、联调、文档拆成清晰工作包，减少同周期混跑。');
       score += 1;
     }
 
@@ -614,7 +622,7 @@ function buildAgentReport(
   const llmPrompt = [
     '你是软件研发效能分析助手，请根据以下结构化信息输出异常报告和优化建议。',
     `样本范围：${filters.startDate} 到 ${filters.endDate}。`,
-    `全局指标：总工时 ${formatNumber(globalMetrics.totalHours)}，活跃员工 ${globalMetrics.activeEmployees}，异常员工日占比 ${formatPercent(globalMetrics.anomalyDayRate)}。`,
+    `全局指标：总工时 ${formatNumber(globalMetrics.totalHours)}，活跃员工 ${globalMetrics.activeEmployees}，异常负载日占比 ${formatPercent(globalMetrics.anomalyDayRate)}。`,
     `主要异常：${issues
       .slice(0, analysisConfig.displayLimits.llmIssuePreview)
       .map((issue) => `${issue.subject} - ${issue.summary}`)

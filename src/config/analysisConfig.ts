@@ -2,7 +2,7 @@ export const analysisConfig = {
   thresholds: {
     standardDailyHours: 7.5,
     highIntensityOvertimeHours: 10,
-    anomalyDailyHours: 9,
+    anomalyDailyHours: 11,
     highTaskFragmentationCount: 3,
     highProjectSwitchCount: 3,
     anomalyScoreThreshold: 2,

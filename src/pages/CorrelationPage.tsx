@@ -6,8 +6,7 @@ import { MetaPill } from '../components/MetaPill';
 import { Panel } from '../components/Panel';
 import { analysisConfig } from '../config/analysisConfig';
 import { formatNumber, formatPercent } from '../lib/format';
-import { getEmployeeRiskMetric } from '../lib/metrics';
-import { classifyTaskWorkstream, isReworkTask } from '../lib/taskSignals';
+import { isReworkTask } from '../lib/taskSignals';
 import type { BaseDataset, CorrelationCell, Filters } from '../types';
 
 interface CorrelationPageProps {
@@ -307,7 +306,6 @@ export function CorrelationPage({
     label: employee.name,
     employeeId: employee.employeeId,
     totalHours: employee.totalHours,
-    anomalyDayCount: employee.anomalyDayCount,
   }));
   const employeeRelationCorrelation = pearson(
     employeeRelationPoints.map((item) => item.x),
@@ -325,23 +323,22 @@ export function CorrelationPage({
   const employeeRelationOption = {
     tooltip: {
       trigger: 'item',
-      formatter: (params: {
-        seriesType?: string;
-        data?: { label: string; value: [number, number]; totalHours: number; anomalyDayCount: number };
-      }) => {
-        if (params.seriesType === 'line') {
-          return '趋势线：帮助观察整体方向，不代表因果。';
-        }
+        formatter: (params: {
+          seriesType?: string;
+          data?: { label: string; value: [number, number]; totalHours: number };
+        }) => {
+          if (params.seriesType === 'line') {
+            return '趋势线：帮助观察整体方向，不代表因果。';
+          }
         const point = params.data;
         return [
           `<strong>${point?.label ?? ''}</strong>`,
-          `多项目率：${formatNumber(point?.value?.[0] ?? 0, 1)}%`,
-          `集中度：${formatNumber(point?.value?.[1] ?? 0, 1)}%`,
-          `总工时：${formatNumber(point?.totalHours ?? 0)} h`,
-          `异常日：${point?.anomalyDayCount ?? 0} 天`,
-        ].join('<br/>');
+            `多项目率：${formatNumber(point?.value?.[0] ?? 0, 1)}%`,
+            `集中度：${formatNumber(point?.value?.[1] ?? 0, 1)}%`,
+            `总工时：${formatNumber(point?.totalHours ?? 0)} h`,
+          ].join('<br/>');
+        },
       },
-    },
     grid: { left: 48, right: 20, top: 24, bottom: 44 },
     xAxis: { type: 'value', name: '多项目率（%）' },
     yAxis: { type: 'value', name: '集中度（%）', max: 100 },
@@ -352,7 +349,6 @@ export function CorrelationPage({
           value: [point.x, point.y],
           label: point.label,
           totalHours: point.totalHours,
-          anomalyDayCount: point.anomalyDayCount,
           employeeId: point.employeeId,
         })),
         symbolSize: 16,
@@ -390,7 +386,7 @@ export function CorrelationPage({
     ],
   };
 
-  const employeeReworkRiskPoints = view.employeeStats
+  const employeeReworkFocusPoints = view.employeeStats
     .map((employee) => {
       const employeeTasks = view.tasks.filter((task) => task.employeeId === employee.employeeId);
       const totalHours = employeeTasks.reduce((sum, task) => sum + task.reportHour, 0);
@@ -399,14 +395,7 @@ export function CorrelationPage({
         .reduce((sum, task) => sum + task.reportHour, 0);
       return {
         x: totalHours ? Number(((reworkHours / totalHours) * 100).toFixed(1)) : 0,
-        y: Number(
-          getEmployeeRiskMetric({
-            multiProjectRate: employee.multiProjectRate,
-            focusScore: employee.focusScore,
-            anomalyDayCount: employee.anomalyDayCount,
-            taskCount: employee.taskCount,
-          }).value.toFixed(1),
-        ),
+        y: Number((employee.focusScore * 100).toFixed(1)),
         label: employee.name,
         employeeId: employee.employeeId,
         totalHours,
@@ -414,20 +403,20 @@ export function CorrelationPage({
       };
     })
     .filter((item) => item.totalHours > 0);
-  const employeeReworkRiskCorrelation = pearson(
-    employeeReworkRiskPoints.map((item) => item.x),
-    employeeReworkRiskPoints.map((item) => item.y),
+  const employeeReworkFocusCorrelation = pearson(
+    employeeReworkFocusPoints.map((item) => item.x),
+    employeeReworkFocusPoints.map((item) => item.y),
   );
-  const employeeReworkRiskRegression = linearRegression(employeeReworkRiskPoints);
-  const employeeReworkRiskWeak = isWeakCorrelation(employeeReworkRiskCorrelation);
-  const employeeReworkRiskRange = employeeReworkRiskPoints.reduce(
+  const employeeReworkFocusRegression = linearRegression(employeeReworkFocusPoints);
+  const employeeReworkFocusWeak = isWeakCorrelation(employeeReworkFocusCorrelation);
+  const employeeReworkFocusRange = employeeReworkFocusPoints.reduce(
     (range, point) => ({
       min: Math.min(range.min, point.x),
       max: Math.max(range.max, point.x),
     }),
     { min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY },
   );
-  const employeeReworkRiskOption = {
+  const employeeReworkFocusOption = {
     tooltip: {
       trigger: 'item',
       formatter: (params: {
@@ -435,13 +424,13 @@ export function CorrelationPage({
         data?: { label: string; value: [number, number]; totalHours: number; reworkHours: number };
       }) => {
         if (params.seriesType === 'line') {
-          return '趋势线：帮助观察返工占比与风险分的整体方向。';
+          return '趋势线：帮助观察返工占比与集中度的整体方向。';
         }
         const point = params.data;
         return [
           `<strong>${point?.label ?? ''}</strong>`,
           `返工占比：${formatNumber(point?.value?.[0] ?? 0, 1)}%`,
-          `风险分：${formatNumber(point?.value?.[1] ?? 0, 1)}`,
+          `集中度：${formatNumber(point?.value?.[1] ?? 0, 1)}%`,
           `总工时：${formatNumber(point?.totalHours ?? 0)} h`,
           `返工类工时：${formatNumber(point?.reworkHours ?? 0)} h`,
         ].join('<br/>');
@@ -449,11 +438,11 @@ export function CorrelationPage({
     },
     grid: { left: 48, right: 20, top: 24, bottom: 44 },
     xAxis: { type: 'value', name: '返工占比（%）' },
-    yAxis: { type: 'value', name: '风险分' },
+    yAxis: { type: 'value', name: '集中度（%）', max: 100 },
     series: [
       {
         type: 'scatter',
-        data: employeeReworkRiskPoints.map((point) => ({
+        data: employeeReworkFocusPoints.map((point) => ({
           value: [point.x, point.y],
           label: point.label,
           totalHours: point.totalHours,
@@ -462,128 +451,32 @@ export function CorrelationPage({
         })),
         symbolSize: 16,
         itemStyle: {
-          color: employeeReworkRiskWeak ? 'rgba(249,115,22,0.4)' : '#f97316',
-          opacity: employeeReworkRiskWeak ? 0.45 : 0.84,
+          color: employeeReworkFocusWeak ? 'rgba(249,115,22,0.4)' : '#f97316',
+          opacity: employeeReworkFocusWeak ? 0.45 : 0.84,
         },
       },
-      ...(employeeReworkRiskRegression && Number.isFinite(employeeReworkRiskRange.min)
+      ...(employeeReworkFocusRegression && Number.isFinite(employeeReworkFocusRange.min)
         ? [
             {
               type: 'line',
               data: [
                 [
-                  employeeReworkRiskRange.min,
-                  employeeReworkRiskRegression.intercept +
-                    employeeReworkRiskRegression.slope * employeeReworkRiskRange.min,
+                  employeeReworkFocusRange.min,
+                  employeeReworkFocusRegression.intercept +
+                    employeeReworkFocusRegression.slope * employeeReworkFocusRange.min,
                 ],
                 [
-                  employeeReworkRiskRange.max,
-                  employeeReworkRiskRegression.intercept +
-                    employeeReworkRiskRegression.slope * employeeReworkRiskRange.max,
+                  employeeReworkFocusRange.max,
+                  employeeReworkFocusRegression.intercept +
+                    employeeReworkFocusRegression.slope * employeeReworkFocusRange.max,
                 ],
               ],
               showSymbol: false,
               silent: true,
               lineStyle: {
-                color: employeeReworkRiskWeak ? '#94a3b8' : '#ea580c',
-                type: employeeReworkRiskWeak ? 'dashed' : 'solid',
-                width: employeeReworkRiskWeak ? 2 : 3,
-              },
-            },
-          ]
-        : []),
-    ],
-  };
-
-  const projectRepairPoints = view.projectStats
-    .map((project) => {
-      const projectTasks = view.tasks.filter((task) => task.projectName === project.projectName);
-      const totalHours = projectTasks.reduce((sum, task) => sum + task.reportHour, 0);
-      const repairHours = projectTasks
-        .filter((task) => classifyTaskWorkstream(task) === '修补型')
-        .reduce((sum, task) => sum + task.reportHour, 0);
-      return {
-        x: totalHours ? Number(((repairHours / totalHours) * 100).toFixed(1)) : 0,
-        y: Number(totalHours.toFixed(1)),
-        label: project.projectName,
-        participantCount: project.participantCount,
-        repairHours,
-      };
-    })
-    .filter((item) => item.y > 0);
-  const projectRepairCorrelation = pearson(
-    projectRepairPoints.map((item) => item.x),
-    projectRepairPoints.map((item) => item.y),
-  );
-  const projectRepairRegression = linearRegression(projectRepairPoints);
-  const projectRepairWeak = isWeakCorrelation(projectRepairCorrelation);
-  const projectRepairRange = projectRepairPoints.reduce(
-    (range, point) => ({
-      min: Math.min(range.min, point.x),
-      max: Math.max(range.max, point.x),
-    }),
-    { min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY },
-  );
-  const projectRepairOption = {
-    tooltip: {
-      trigger: 'item',
-      formatter: (params: {
-        seriesType?: string;
-        data?: { label: string; value: [number, number]; participantCount: number; repairHours: number };
-      }) => {
-        if (params.seriesType === 'line') {
-          return '趋势线：帮助观察修补型占比与总工时是否一起抬升。';
-        }
-        const point = params.data;
-        return [
-          `<strong>${point?.label ?? ''}</strong>`,
-          `修补型占比：${formatNumber(point?.value?.[0] ?? 0, 1)}%`,
-          `总工时：${formatNumber(point?.value?.[1] ?? 0)} h`,
-          `修补型工时：${formatNumber(point?.repairHours ?? 0)} h`,
-          `参与人数：${point?.participantCount ?? 0}`,
-        ].join('<br/>');
-      },
-    },
-    grid: { left: 48, right: 20, top: 24, bottom: 44 },
-    xAxis: { type: 'value', name: '修补型占比（%）' },
-    yAxis: { type: 'value', name: '总工时（h）' },
-    series: [
-      {
-        type: 'scatter',
-        data: projectRepairPoints.map((point) => ({
-          value: [point.x, point.y],
-          label: point.label,
-          participantCount: point.participantCount,
-          repairHours: point.repairHours,
-        })),
-        symbolSize: 18,
-        itemStyle: {
-          color: projectRepairWeak ? 'rgba(14,165,164,0.4)' : '#0ea5a4',
-          opacity: projectRepairWeak ? 0.45 : 0.82,
-        },
-      },
-      ...(projectRepairRegression && Number.isFinite(projectRepairRange.min)
-        ? [
-            {
-              type: 'line',
-              data: [
-                [
-                  projectRepairRange.min,
-                  projectRepairRegression.intercept +
-                    projectRepairRegression.slope * projectRepairRange.min,
-                ],
-                [
-                  projectRepairRange.max,
-                  projectRepairRegression.intercept +
-                    projectRepairRegression.slope * projectRepairRange.max,
-                ],
-              ],
-              showSymbol: false,
-              silent: true,
-              lineStyle: {
-                color: projectRepairWeak ? '#94a3b8' : '#0f766e',
-                type: projectRepairWeak ? 'dashed' : 'solid',
-                width: projectRepairWeak ? 2 : 3,
+                color: employeeReworkFocusWeak ? '#94a3b8' : '#ea580c',
+                type: employeeReworkFocusWeak ? 'dashed' : 'solid',
+                width: employeeReworkFocusWeak ? 2 : 3,
               },
             },
           ]
@@ -750,7 +643,7 @@ export function CorrelationPage({
     <div className="page-grid">
       <DataSourceBoundaryBanner
         className="panel-wide"
-        realSources={['工时原始数据', '员工日聚合指标', '规则推导相关矩阵']}
+        realSources={['工时原始数据', '员工日直接因素矩阵', '低耦合派生指标关系']}
         mockSources={
           analysisConfig.ruleToggles.showMockCharts ? ['Git', 'AI 使用', '用户反馈'] : []
         }
@@ -765,6 +658,7 @@ export function CorrelationPage({
             <MetaPill tone="derived">规则推导</MetaPill>
             <span>当前真实来源：工时员工日聚合</span>
             <span>方法：Pearson 线性相关</span>
+            <span>遵循变量约束规范：不解释规则告警指标</span>
             <span>正确用法：描述 → 候选关系 → 再验证</span>
           </div>
         }
@@ -914,33 +808,18 @@ export function CorrelationPage({
         />
 
         <ChartPanel
-          title="返工占比 vs 风险分"
-          subtitle="返工型工作越多的人，是否更容易进入高风险状态"
-          note={`当前呈${correlationStrengthLabel(employeeReworkRiskCorrelation)}${relationDirectionLabel(
-            employeeReworkRiskCorrelation,
-          )}（r=${formatNumber(employeeReworkRiskCorrelation, 1)}，n=${employeeReworkRiskPoints.length}）。`}
-          option={employeeReworkRiskOption}
+          title="返工占比 vs 集中度"
+          subtitle="返工型工作越多的人，是否更难保持聚焦"
+          note={`当前呈${correlationStrengthLabel(employeeReworkFocusCorrelation)}${relationDirectionLabel(
+            employeeReworkFocusCorrelation,
+          )}（r=${formatNumber(employeeReworkFocusCorrelation, 1)}，n=${employeeReworkFocusPoints.length}）。`}
+          option={employeeReworkFocusOption}
           height={280}
-          badge={`n=${employeeReworkRiskPoints.length}`}
+          badge={`n=${employeeReworkFocusPoints.length}`}
           source="derived"
-          method="按员工聚合返工占比与风险分，并叠加线性趋势线"
-          reliability={employeeReworkRiskWeak ? '低到中，当前关系较弱' : '中'}
-          caution="相关不代表因果；风险分本身含异常日和切换率，适合做复盘线索，不适合直接用于个人评价"
-        />
-
-        <ChartPanel
-          title="修补型占比 vs 总工时"
-          subtitle="修补型工作抬升时，项目总投入会不会一起变重"
-          note={`当前呈${correlationStrengthLabel(projectRepairCorrelation)}${relationDirectionLabel(
-            projectRepairCorrelation,
-          )}（r=${formatNumber(projectRepairCorrelation, 1)}，n=${projectRepairPoints.length}）。`}
-          option={projectRepairOption}
-          height={280}
-          badge={`n=${projectRepairPoints.length}`}
-          source="derived"
-          method="按项目聚合修补型工时占比与总工时，并叠加线性趋势线"
-          reliability={projectRepairWeak ? '低到中，当前关系较弱' : '中'}
-          caution="相关不代表因果；修补型占比高可能来自项目阶段不同，也可能来自返工和支持任务叠加"
+          method="按员工聚合返工占比与集中度，并叠加线性趋势线"
+          reliability={employeeReworkFocusWeak ? '低到中，当前关系较弱' : '中'}
+          caution="相关不代表因果；返工占比和集中度都属于低耦合派生指标，更适合做复盘线索"
         />
 
         {analysisConfig.ruleToggles.showMockCharts ? (

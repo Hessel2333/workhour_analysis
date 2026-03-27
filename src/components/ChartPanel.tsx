@@ -109,6 +109,7 @@ export function ChartPanel({
         <ReactECharts
           option={withChartTheme(option, isDark, isCompact)}
           style={{ height: resolvedHeight }}
+          notMerge
           onEvents={
             onChartClick
               ? {
