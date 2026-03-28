@@ -1,6 +1,6 @@
+import { useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ChartPanel } from '../components/ChartPanel';
-import { CollapsiblePanel } from '../components/CollapsiblePanel';
 import { DataTable } from '../components/DataTable';
 import { MetaPill } from '../components/MetaPill';
 import { Panel } from '../components/Panel';
@@ -12,6 +12,12 @@ import {
   qualityFlagTypeLabel,
   severityLabel,
 } from '../lib/format';
+import {
+  buildKeywordNetwork,
+  buildReviewKeywordFrequency,
+  buildReviewTopicMap,
+  buildVerifyGapDistribution,
+} from '../lib/qualityExploration';
 import { isReworkTask } from '../lib/taskSignals';
 import type { AnalyticsView, BaseDataset, DetailSelection } from '../types';
 
@@ -21,7 +27,15 @@ interface QualityPageProps {
   onOpenDetail: (detail: DetailSelection) => void;
 }
 
+type QualityWorkspaceMode = 'high' | 'task' | 'all';
+type ReviewReason = '待确认' | '未分类' | '低可信度';
+
 export function QualityPage({ dataset, view, onOpenDetail }: QualityPageProps) {
+  const [workspaceMode, setWorkspaceMode] = useState<QualityWorkspaceMode>('high');
+  const verifyGapDistribution = buildVerifyGapDistribution(view.employeeStats, view.employeeDays);
+  const reviewKeywordFrequency = buildReviewKeywordFrequency(view.tasks);
+  const reviewTopicMap = buildReviewTopicMap(view.tasks);
+  const keywordNetwork = buildKeywordNetwork(view.tasks);
   const unverifiedTaskCount = view.tasks.filter(
     (task) => task.verifyState !== '已核验' && task.reportHour > 0,
   ).length;
@@ -227,6 +241,31 @@ export function QualityPage({ dataset, view, onOpenDetail }: QualityPageProps) {
     .slice(0, Math.min(3, paretoEntries.length))
     .map((entry) => entry.label)
     .join('、');
+  const highSeverityFlags = view.qualityFlags.filter((flag) => flag.severity === 'high');
+  const taskFlags = view.qualityFlags.filter((flag) => flag.entityType === 'task');
+  const reviewQueue = view.tasks
+    .filter(
+      (task) =>
+        task.topicLabel === '未分类' ||
+        task.topicLabel === '待确认' ||
+        task.topicConfidence < analysisConfig.thresholds.lowTopicConfidence,
+    )
+    .map((task) => ({
+      ...task,
+      reviewReason:
+        task.topicLabel === '待确认'
+          ? '待确认'
+          : task.topicLabel === '未分类'
+            ? '未分类'
+            : '低可信度' as ReviewReason,
+    }))
+    .sort((left, right) => {
+      const priority: Record<ReviewReason, number> = { 待确认: 0, 未分类: 1, 低可信度: 2 };
+      return (
+        priority[left.reviewReason] - priority[right.reviewReason] ||
+        left.topicConfidence - right.topicConfidence
+      );
+    });
 
   const flagOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -238,6 +277,160 @@ export function QualityPage({ dataset, view, onOpenDetail }: QualityPageProps) {
         type: 'bar',
         data: flagCountEntries.map(([, count]) => count),
         itemStyle: { color: '#ff453a', borderRadius: 10 },
+      },
+    ],
+  };
+  const verifyGapDistributionOption = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params: Array<{ axisValue?: string; value?: number }>) =>
+        [
+          `<strong>${params[0]?.axisValue ?? ''}</strong>`,
+          `员工数：${params[0]?.value ?? 0}`,
+          `平均核验缺口率：${formatNumber(verifyGapDistribution.averageRate, 1)}%`,
+          `中位数：${formatNumber(verifyGapDistribution.medianRate, 1)}%`,
+        ].join('<br/>'),
+    },
+    grid: { left: 36, right: 20, top: 24, bottom: 42 },
+    xAxis: {
+      type: 'category',
+      name: '核验缺口率区间',
+      data: verifyGapDistribution.bins.map((item) => item.label),
+    },
+    yAxis: {
+      type: 'value',
+      name: '员工数',
+    },
+    series: [
+      {
+        type: 'bar',
+        barWidth: '64%',
+        data: verifyGapDistribution.bins.map((item) => item.count),
+        itemStyle: {
+          color: '#f97316',
+          borderRadius: [10, 10, 0, 0],
+        },
+      },
+    ],
+  };
+  const keywordFrequencyOption = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params: Array<{ name?: string; value?: number }>) => {
+        const current = reviewKeywordFrequency.items.find((item) => item.keyword === params[0]?.name);
+        return [
+          `<strong>${params[0]?.name ?? ''}</strong>`,
+          `命中任务数：${params[0]?.value ?? 0}`,
+          `复核池任务总数：${reviewKeywordFrequency.totalReviewTasks}`,
+          current ? `关键词热度：${formatNumber(current.count)} 次` : '',
+        ]
+          .filter(Boolean)
+          .join('<br/>');
+      },
+    },
+    grid: { left: 96, right: 20, top: 24, bottom: 42, containLabel: true },
+    xAxis: {
+      type: 'value',
+      name: '命中任务数',
+    },
+    yAxis: {
+      type: 'category',
+      inverse: true,
+      data: reviewKeywordFrequency.items.map((item) => item.keyword),
+    },
+    series: [
+      {
+        type: 'bar',
+        data: reviewKeywordFrequency.items.map((item) => item.count),
+        itemStyle: {
+          color: '#8b5cf6',
+          borderRadius: 10,
+        },
+        label: {
+          show: true,
+          position: 'right',
+          color: '#475569',
+        },
+      },
+    ],
+  };
+  const reviewTopicMapOption = {
+    tooltip: {
+      trigger: 'item',
+      formatter: (params: {
+        seriesName?: string;
+        data?: { name?: string; value?: [number, number, number] };
+      }) =>
+        [
+          `<strong>${params.data?.name ?? ''}</strong>`,
+          `主题簇：${params.seriesName ?? ''}`,
+          `命中任务数：${formatNumber(params.data?.value?.[2] ?? 0)}`,
+        ].join('<br/>'),
+    },
+    legend: { top: 0 },
+    grid: { left: 36, right: 20, top: 48, bottom: 36 },
+    xAxis: {
+      type: 'value',
+      name: '语义主轴 1',
+      scale: true,
+    },
+    yAxis: {
+      type: 'value',
+      name: '语义主轴 2',
+      scale: true,
+    },
+    series: Array.from(new Set(reviewTopicMap.points.map((item) => item.clusterLabel))).map((label) => ({
+      name: label,
+      type: 'scatter',
+      data: reviewTopicMap.points
+        .filter((item) => item.clusterLabel === label)
+        .map((item) => ({
+          name: item.name,
+          value: [item.x, item.y, item.value],
+          symbolSize: 16 + item.value * 2,
+        })),
+    })),
+  };
+  const keywordNetworkOption = {
+    tooltip: {
+      formatter: (params: {
+        dataType?: string;
+        data?: { name?: string; value?: number; source?: string; target?: string };
+      }) =>
+        params.dataType === 'edge'
+          ? [
+              `<strong>${params.data?.source ?? ''} × ${params.data?.target ?? ''}</strong>`,
+              `共同出现：${formatNumber(params.data?.value ?? 0)} 次`,
+            ].join('<br/>')
+          : [
+              `<strong>${params.data?.name ?? ''}</strong>`,
+              `热度：${formatNumber(params.data?.value ?? 0)} 次`,
+            ].join('<br/>'),
+    },
+    legend: { top: 0 },
+    series: [
+      {
+        type: 'graph',
+        layout: 'force',
+        roam: true,
+        data: keywordNetwork.nodes,
+        links: keywordNetwork.links,
+        categories: [
+          { name: '中文关键词' },
+          { name: '英文/术语' },
+        ],
+        label: { show: true },
+        force: {
+          repulsion: 180,
+          edgeLength: [50, 120],
+        },
+        lineStyle: {
+          color: 'source',
+          curveness: 0.08,
+          opacity: 0.45,
+        },
       },
     ],
   };
@@ -388,6 +581,47 @@ export function QualityPage({ dataset, view, onOpenDetail }: QualityPageProps) {
     { header: '对象 ID', accessorKey: 'entityId' },
     { header: '说明', accessorKey: 'message' },
   ];
+  const reviewQueueColumns: Array<ColumnDef<(typeof reviewQueue)[number]>> = [
+    {
+      header: '复核原因',
+      cell: ({ row }) => (
+        <MetaPill tone={row.original.reviewReason === '低可信度' ? 'warning' : 'derived'}>
+          {row.original.reviewReason}
+        </MetaPill>
+      ),
+    },
+    { header: '日期', accessorKey: 'date' },
+    { header: '项目', accessorKey: 'projectName' },
+    { header: '任务名称', accessorKey: 'taskName' },
+    { header: '当前分类', accessorKey: 'topicLabel' },
+    {
+      header: '可信度',
+      cell: ({ row }) => formatPercent(row.original.topicConfidence),
+    },
+  ];
+  const currentWorkspace =
+    workspaceMode === 'high'
+      ? {
+          title: '高风险旗标',
+          subtitle: '先处理最影响可信度的高风险项',
+          note: '这里优先看高风险质量旗标，适合作为本轮治理的第一优先级。',
+          emptyMessage: '当前没有高风险质量旗标。',
+        }
+      : workspaceMode === 'task'
+        ? {
+            title: '待复核任务',
+            subtitle: '集中处理待确认、未分类和低可信任务',
+            note: '这里统一承接任务页迁过来的质量治理清单，更适合直接回到任务文本、主题规则和核验流程上处理。',
+            emptyMessage: '当前没有待复核任务。',
+          }
+        : {
+            title: '全部质量旗标',
+            subtitle: '需要时再查看完整旗标清单，不把页面拖成长报表',
+            note: '保留完整清单用于回查对象、级别和说明，建议优先看高风险与任务治理项。',
+            emptyMessage: '当前没有质量旗标。',
+          };
+  const currentFlagData = workspaceMode === 'high' ? highSeverityFlags : view.qualityFlags;
+  const currentWorkspaceCount = workspaceMode === 'task' ? reviewQueue.length : currentFlagData.length;
 
   return (
     <div className="page-grid">
@@ -504,20 +738,112 @@ export function QualityPage({ dataset, view, onOpenDetail }: QualityPageProps) {
         caution="类型数量高不代表影响一定最大，需结合质量总览理解"
       />
 
-      <CollapsiblePanel
-        title="质量清单"
-        subtitle="逐条核查并安排后续治理"
-        note="建议先处理高风险项，再迭代规则词典和多源身份映射。"
+      <ChartPanel
+        title="员工核验缺口率分布"
+        subtitle="看核验缺口是集中在少数人，还是普遍存在"
+        note="这张图只研究核验缺口率本身的分布，不再和异常日、风险分等规则型指标做耦合分析。"
+        option={verifyGapDistributionOption}
+        source="derived"
+        method="前端计算：按员工计算核验缺口率并做区间分布统计"
+        reliability="中高"
+        caution="缺口率偏高可能来自流程延迟，也可能来自记录习惯差异，需要结合项目背景判断"
+      />
+
+      <ChartPanel
+        title="待复核任务关键词频次"
+        subtitle="把复核池里的模糊任务名拆成更可治理的关键词"
+        note="这里已经不是简单统计完整任务名，而是做了轻量关键词抽取，更适合反向优化主题规则。"
+        option={keywordFrequencyOption}
+        source="derived"
+        method="前端计算：复核池任务名清洗 + 关键词抽取 + 频次统计"
+        reliability="中"
+        caution="当前是轻量规则抽取，不是正式分词和主题建模"
+      />
+
+      <ChartPanel
+        title="复核池主题簇地图"
+        subtitle="把高频关键词投影到二维空间，看它们自然聚成哪些问题团块"
+        note="这张图不是正式 LDA，而是把复核池高频关键词按共现关系做轻量分簇，再排成二维位置，帮助你快速看到哪些模糊词属于同一类问题。"
+        option={reviewTopicMapOption}
+        source="derived"
+        method="前端计算：关键词共现关系 + 轻量分簇 + 二维排布"
+        reliability="中"
+        caution="这是一张探索图，适合发现潜在线索，不等于正式主题模型结论"
+      />
+
+      <ChartPanel
+        title="待复核任务关键词共现网络"
+        subtitle="看哪些关键词经常在同一条模糊任务里一起出现"
+        note="这张图适合用来发现隐含主题团块，比如某些关键词总是一起出现，就很适合回头补一条明确规则。"
+        option={keywordNetworkOption}
+        source="derived"
+        method="前端计算：复核池关键词抽取 + 同任务共现边统计"
+        reliability="中"
+        caution="当前网络仍是轻量规则抽取结果，不等于正式语义主题模型"
+      />
+
+      <Panel
+        title="质量治理工作台"
+        subtitle={currentWorkspace.subtitle}
+        note={currentWorkspace.note}
+        className="panel-wide"
+        actions={
+          <div className="focus-tabs task-workspace-tabs" role="tablist" aria-label="质量工作台切换">
+            {[
+              ['high', `高风险 ${highSeverityFlags.length}`],
+              ['task', `待复核 ${reviewQueue.length}`],
+              ['all', `全部旗标 ${view.qualityFlags.length}`],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={workspaceMode === value}
+                className={`focus-tab ${workspaceMode === value ? 'active' : ''}`.trim()}
+                onClick={() => setWorkspaceMode(value as QualityWorkspaceMode)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        }
         meta={
           <div className="chart-meta">
-            <MetaPill tone="derived">规则推导</MetaPill>
-            <span>方法：质量旗标列表</span>
-            <span>建议：先看高风险，再看覆盖率</span>
+            <MetaPill tone="derived">{currentWorkspace.title}</MetaPill>
+            <span>{`高风险 ${highSeverityFlags.length} 条`}</span>
+            <span>{`待复核 ${reviewQueue.length} 条`}</span>
+            <span>{`任务级旗标 ${taskFlags.length} 条`}</span>
+            <span>{`当前表格 ${currentWorkspaceCount} 条`}</span>
           </div>
         }
       >
-        <DataTable columns={columns} data={view.qualityFlags} />
-      </CollapsiblePanel>
+        {workspaceMode === 'task' ? (
+          <DataTable
+            columns={reviewQueueColumns}
+            data={reviewQueue}
+            maxHeight={460}
+            className="task-workspace-table"
+            emptyMessage={currentWorkspace.emptyMessage}
+            onRowClick={(task) =>
+              onOpenDetail({
+                kind: 'task',
+                title: '任务聚焦分析',
+                subtitle: task.taskName,
+                taskId: task.taskId,
+                rows: [],
+              })
+            }
+          />
+        ) : (
+          <DataTable
+            columns={columns}
+            data={currentFlagData}
+            maxHeight={460}
+            className="task-workspace-table"
+            emptyMessage={currentWorkspace.emptyMessage}
+          />
+        )}
+      </Panel>
     </div>
   );
 }

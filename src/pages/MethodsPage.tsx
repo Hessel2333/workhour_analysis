@@ -3,6 +3,7 @@ import { MetaPill } from '../components/MetaPill';
 import { analysisConfig } from '../config/analysisConfig';
 import { formatNumber, formatPercent } from '../lib/format';
 import { getUncategorizedRateMetric, getVerificationCoverageMetric } from '../lib/metrics';
+import { PROJECT_STRUCTURE_LABEL_RULES } from '../lib/projectStructureLabels';
 import type { AnalyticsView } from '../types';
 
 interface MethodsPageProps {
@@ -147,6 +148,16 @@ const METRIC_GROUPS: MetricDefinitionGroup[] = [
         fields: ['tasks.employeeId', 'tasks.projectName', 'tasks.reportHour', 'tasks.topicLabel'],
         applies: ['项目气泡图、项目清单、资源配置讨论', '识别多人浅介入或主题过多的项目'],
         avoid: ['不适合孤立评价效率', '主题复杂度受规则词典覆盖度影响'],
+        tone: 'derived',
+        sourceLabel: '规则推导',
+      },
+      {
+        name: '项目结构标签',
+        explanation: `为了让全量项目气泡图更容易扫读，当前会按标准化后的项目结构特征给每个项目贴一个结构标签。判定优先级依次是：${PROJECT_STRUCTURE_LABEL_RULES.map((item) => `${item.label}（${item.rule}）`).join('；')}。`,
+        formula: '先对总工时、参与人数、主题复杂度、人均投入、趋势斜率做标准化，再按固定优先级命中标签',
+        fields: ['projectStats.totalHours', 'projectStats.participantCount', 'projectStats.topicDiversity', 'projectStats.averageHoursPerPerson', 'projectStats.trendSlope'],
+        applies: ['全量项目气泡图的颜色标签', '快速判断项目更像大盘协作、高密度投入还是主题分散'],
+        avoid: ['不适合代替原始指标本身', '标签是便于扫读的结构画像，不代表项目好坏'],
         tone: 'derived',
         sourceLabel: '规则推导',
       },

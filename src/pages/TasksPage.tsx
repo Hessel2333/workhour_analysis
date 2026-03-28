@@ -1,6 +1,6 @@
+import { useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ChartPanel } from '../components/ChartPanel';
-import { CollapsiblePanel } from '../components/CollapsiblePanel';
 import { DataTable } from '../components/DataTable';
 import { MetaPill } from '../components/MetaPill';
 import { Panel } from '../components/Panel';
@@ -14,6 +14,8 @@ interface TasksPageProps {
   view: AnalyticsView;
   onOpenDetail: (detail: DetailSelection) => void;
 }
+
+type TaskWorkspaceMode = 'explain' | 'all';
 
 function TopicExplanationCell({
   task,
@@ -43,13 +45,8 @@ function TopicExplanationCell({
 }
 
 export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
+  const [workspaceMode, setWorkspaceMode] = useState<TaskWorkspaceMode>('explain');
   const topicRank = [...view.topicStats].sort((left, right) => right.totalHours - left.totalHours);
-  const reviewTasks = view.tasks.filter(
-    (task) =>
-      task.topicLabel === '未分类' ||
-      task.topicLabel === '待确认' ||
-      task.topicConfidence < analysisConfig.thresholds.lowTopicConfidence,
-  );
   const uncategorizedCount = view.tasks.filter((task) => task.topicLabel === '未分类').length;
   const pendingCount = view.tasks.filter((task) => task.topicLabel === '待确认').length;
   const lowConfidenceCount = view.tasks.filter(
@@ -58,8 +55,6 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
       task.topicLabel !== '待确认' &&
       task.topicConfidence < analysisConfig.thresholds.lowTopicConfidence,
   ).length;
-  const pendingTasks = view.tasks.filter((task) => task.topicLabel === '待确认');
-  const reviewTasksWithoutPending = reviewTasks.filter((task) => task.topicLabel !== '待确认');
   const topTopic = topicRank[0];
 
   const topicOption = {
@@ -136,21 +131,6 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
     },
   ];
 
-  const reviewColumns: Array<ColumnDef<(typeof reviewTasks)[number]>> = [
-    { header: '日期', accessorKey: 'date' },
-    { header: '项目', accessorKey: 'projectName' },
-    { header: '任务名称', accessorKey: 'taskName' },
-    { header: '当前分类', accessorKey: 'topicLabel' },
-    {
-      header: '可信度',
-      cell: ({ row }) => formatPercent(row.original.topicConfidence),
-    },
-    {
-      header: '分类命中详情',
-      cell: ({ row }) => <TopicExplanationCell task={row.original} compact />,
-    },
-  ];
-
   const explanationColumns: Array<ColumnDef<(typeof view.tasks)[number]>> = [
     { header: '日期', accessorKey: 'date' },
     { header: '项目', accessorKey: 'projectName' },
@@ -161,6 +141,22 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
       cell: ({ row }) => <TopicExplanationCell task={row.original} />,
     },
   ];
+  const currentWorkspace =
+    workspaceMode === 'explain'
+        ? {
+            title: '分类命中详情',
+            subtitle: '逐条查看任务到底命中了哪条规则',
+            note:
+              '这里专门保留内容和分类解释，不再承担待确认、未分类、低可信这类质量治理清单。',
+            emptyMessage: '当前没有可显示的分类命中数据。',
+          }
+        : {
+            title: '全部任务',
+            subtitle: '需要时再展开完整明细，不把首屏拉成长报表',
+            note:
+              '这里保留最基础的任务明细，用来回查日期、项目、工时和主题映射。默认只在工作台里查看。',
+            emptyMessage: '当前没有任务明细。',
+          };
 
   return (
     <div className="page-grid">
@@ -189,7 +185,7 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
           <div className="chart-meta">
             <MetaPill tone="derived">规则词典</MetaPill>
             <span>可复核字段：规则名 / 关键词 / 可信度 / fallback</span>
-            <span>建议优先处理待确认、未分类和低可信度任务</span>
+            <span>待确认、未分类和低可信治理清单已迁到数据质量页</span>
           </div>
         }
       >
@@ -220,89 +216,76 @@ export function TasksPage({ view, onOpenDetail }: TasksPageProps) {
         option={keywordOption}
       />
 
-      <CollapsiblePanel
-        title="待确认清单"
-        subtitle="这些任务有明显主题，但语义仍需要人工拍板"
-        note="常见于日期占位任务、版本名、泛化项目名或内部缩写。点击行可直接打开任务详情。"
-        defaultOpen={pendingTasks.length <= 18}
+      <Panel
+        title="任务复核工作台"
+        subtitle={currentWorkspace.subtitle}
+        note={currentWorkspace.note}
+        className="panel-wide"
+        actions={
+          <div className="focus-tabs task-workspace-tabs" role="tablist" aria-label="任务工作台切换">
+            {[
+              ['explain', '分类命中'],
+              ['all', `全部任务 ${view.tasks.length}`],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={workspaceMode === value}
+                className={`focus-tab ${workspaceMode === value ? 'active' : ''}`.trim()}
+                onClick={() => setWorkspaceMode(value as TaskWorkspaceMode)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        }
+        meta={
+          <div className="chart-meta">
+            <MetaPill tone="derived">{currentWorkspace.title}</MetaPill>
+            <span>{`待确认 ${pendingCount} 条`}</span>
+            <span>{`未分类 ${uncategorizedCount} 条`}</span>
+            <span>{`低可信 ${lowConfidenceCount} 条`}</span>
+            <span>{`当前表格 ${view.tasks.length} 条`}</span>
+          </div>
+        }
       >
-        <DataTable
-          columns={reviewColumns}
-          data={pendingTasks}
-          onRowClick={(task) =>
-            onOpenDetail({
-              kind: 'task',
-              title: '任务聚焦分析',
-              subtitle: task.taskName,
-              taskId: task.taskId,
-              rows: [],
-            })
-          }
-        />
-      </CollapsiblePanel>
-
-      <CollapsiblePanel
-        title="分类复核清单"
-        subtitle="人工复核剩余未分类与低可信度任务"
-        note="建议优先补充高频任务关键词，再回看主题分布图。点击行可直接打开任务详情。"
-        defaultOpen={reviewTasksWithoutPending.length <= 24}
-      >
-        <DataTable
-          columns={reviewColumns}
-          data={reviewTasksWithoutPending}
-          onRowClick={(task) =>
-            onOpenDetail({
-              kind: 'task',
-              title: '任务聚焦分析',
-              subtitle: task.taskName,
-              taskId: task.taskId,
-              rows: [],
-            })
-          }
-        />
-      </CollapsiblePanel>
-
-      <CollapsiblePanel
-        title="分类命中详情"
-        subtitle="逐条查看任务到底命中了哪条规则"
-        note="这里会同时显示规则名、关键词和 fallback 状态，适合给规则词典做增补。点击行可直接打开任务详情。"
-        defaultOpen={view.tasks.length <= 16}
-      >
-        <DataTable
-          columns={explanationColumns}
-          data={view.tasks}
-          onRowClick={(task) =>
-            onOpenDetail({
-              kind: 'task',
-              title: '任务聚焦分析',
-              subtitle: task.taskName,
-              taskId: task.taskId,
-              rows: [],
-            })
-          }
-        />
-      </CollapsiblePanel>
-
-      <CollapsiblePanel
-        title="任务明细"
-        subtitle="逐条核查主题映射与任务名"
-        note="分类结果来自规则词典，未分类项会在数据质量页集中提示。"
-        defaultOpen
-      >
-        <DataTable
-          columns={columns}
-          data={view.tasks}
-          onRowClick={(task) =>
-            onOpenDetail({
-              kind: 'task',
-              title: '任务聚焦分析',
-              subtitle: task.taskName,
-              taskId: task.taskId,
-              rows: [],
-            })
-          }
-        />
-      </CollapsiblePanel>
+        {workspaceMode === 'explain' ? (
+          <DataTable
+            columns={explanationColumns}
+            data={view.tasks}
+            maxHeight={460}
+            className="task-workspace-table"
+            emptyMessage={currentWorkspace.emptyMessage}
+            onRowClick={(task) =>
+              onOpenDetail({
+                kind: 'task',
+                title: '任务聚焦分析',
+                subtitle: task.taskName,
+                taskId: task.taskId,
+                rows: [],
+              })
+            }
+          />
+        ) : (
+          <DataTable
+            columns={columns}
+            data={view.tasks}
+            maxHeight={460}
+            className="task-workspace-table"
+            emptyMessage={currentWorkspace.emptyMessage}
+            onRowClick={(task) =>
+              onOpenDetail({
+                kind: 'task',
+                title: '任务聚焦分析',
+                subtitle: task.taskName,
+                taskId: task.taskId,
+                rows: [],
+              })
+            }
+          />
+        )}
+      </Panel>
     </div>
   );
 }

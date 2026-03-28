@@ -7,6 +7,10 @@ import { analysisConfig } from '../config/analysisConfig';
 import { projectColor } from '../lib/chartColors';
 import { formatNumber, formatPercent } from '../lib/format';
 import { getProjectReworkShareMetric } from '../lib/metrics';
+import {
+  buildProjectStructureProfiles,
+  projectStructureLabelColor,
+} from '../lib/projectStructureLabels';
 import { isReworkTask } from '../lib/taskSignals';
 import {
   buildGranularityLabels,
@@ -59,6 +63,10 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
       }).value,
     };
   });
+  const projectStructureProfiles = buildProjectStructureProfiles(view.projectStats);
+  const projectStructureProfileMap = new Map(
+    projectStructureProfiles.map((item) => [item.projectName, item]),
+  );
   const sortedProjects = [...projectReworkStats].sort(
     (left, right) => right.totalHours - left.totalHours,
   );
@@ -490,43 +498,49 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
   const allProjectsBubbleOption = {
     tooltip: {
       trigger: 'item',
-      formatter: (params: { value?: Array<string | number> }) => {
+      formatter: (params: { seriesName?: string; value?: Array<string | number> }) => {
         const value = params.value ?? [];
         const projectName = String(value[3] ?? '');
         const project = sortedProjects.find((item) => item.projectName === projectName);
         if (!project) return projectName;
+        const profile = projectStructureProfileMap.get(project.projectName);
         return [
           `<strong>${project.projectName}</strong>`,
+          `结构标签：${params.seriesName ?? profile?.structureLabel ?? '稳态项目'}`,
           `参与人数：${project.participantCount}`,
           `总工时：${formatNumber(project.totalHours)} h`,
           `主题复杂度：${project.topicDiversity}`,
           `人均投入：${formatNumber(project.averageHoursPerPerson)} h`,
+          `趋势斜率：${formatNumber(project.trendSlope, 2)}`,
           `主导主题：${project.primaryTopic}`,
         ].join('<br/>');
       },
     },
-    grid: { left: 42, right: 28, top: 24, bottom: 52, containLabel: true },
+    legend: { top: 0 },
+    grid: { left: 42, right: 28, top: 48, bottom: 52, containLabel: true },
     xAxis: { type: 'value', name: '参与人数', scale: true },
     yAxis: { type: 'value', name: '总工时（h）', scale: true },
-    series: [
-      {
-        type: 'scatter',
-        clip: false,
-        symbolSize: bubbleSymbolSize,
-        data: sortedProjects
-          .filter((project) => project.totalHours > 0)
-          .map((project) => [
-            project.participantCount,
-            Number(project.totalHours.toFixed(1)),
-            project.topicDiversity,
-            project.projectName,
-          ]),
-        itemStyle: {
-          color: '#2a9d8f',
-          opacity: 0.84,
-        },
+    series: Array.from(
+      new Set(projectStructureProfiles.map((item) => item.structureLabel)),
+    ).map((label) => ({
+      name: label,
+      type: 'scatter',
+      clip: false,
+      symbolSize: bubbleSymbolSize,
+      data: sortedProjects
+        .filter((project) => project.totalHours > 0)
+        .filter((project) => projectStructureProfileMap.get(project.projectName)?.structureLabel === label)
+        .map((project) => [
+          project.participantCount,
+          Number(project.totalHours.toFixed(1)),
+          project.topicDiversity,
+          project.projectName,
+        ]),
+      itemStyle: {
+        color: projectStructureLabelColor(label),
+        opacity: 0.84,
       },
-    ],
+    })),
   };
 
   const catalogHeroHeight = (() => {
@@ -572,7 +586,7 @@ export function ProjectsPage({ view, filters, onOpenDetail }: ProjectsPageProps)
     bubble: {
       title: '全部项目气泡图',
       subtitle: '参与人数、总工时和主题复杂度的全量分布',
-      note: '每个气泡代表一个项目。横轴看参与人数，纵轴看总工时，气泡大小表示主题复杂度。',
+      note: '每个气泡代表一个项目。横轴看参与人数，纵轴看总工时，气泡大小表示主题复杂度，颜色表示项目结构标签。',
       option: allProjectsBubbleOption,
       source: 'derived' as const,
       onChartClick: (params: { value?: unknown }) =>

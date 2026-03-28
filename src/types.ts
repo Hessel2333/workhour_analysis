@@ -1,7 +1,6 @@
 export type PageKey =
   | 'overview'
   | 'agent'
-  | 'r_lab'
   | 'methods'
   | 'settings'
   | 'employees'

@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChartPanel } from '../components/ChartPanel';
 import { MetaPill } from '../components/MetaPill';
 import { Panel } from '../components/Panel';
 import { TrendGranularitySwitch } from '../components/TrendGranularitySwitch';
 import { analysisConfig } from '../config/analysisConfig';
 import { topicColor } from '../lib/chartColors';
+import { buildEmployeeUpSetData, buildEmployeeVolatilityData } from '../lib/employeeExploration';
 import { formatNumber, formatPercent } from '../lib/format';
+import { isCompanyWorkday } from '../lib/holidayCalendar';
 import { getEmployeeRiskMetric, getFirefightingMetric, getFocusScoreMetric } from '../lib/metrics';
 import { isReworkTask } from '../lib/taskSignals';
 import {
@@ -155,6 +157,8 @@ function longestConsecutive(values: boolean[]) {
 export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProps) {
   const [monthTrendGranularity, setMonthTrendGranularity] = useState<'day' | 'week'>('day');
   const [loadCalendarMode, setLoadCalendarMode] = useState<'hours' | 'risk' | 'anomaly'>('hours');
+  const [volatilityMode, setVolatilityMode] = useState<'weekday' | 'all'>('weekday');
+  const [selectedUpSetComboIndex, setSelectedUpSetComboIndex] = useState<number | null>(null);
   const trendGranularity: TrendGranularity =
     filters.periodMode === 'month' ? monthTrendGranularity : 'month';
   const trendLabel = trendGranularityLabel(trendGranularity);
@@ -177,7 +181,10 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
       return rightScore - leftScore;
     })
     .slice(0, analysisConfig.displayLimits.employeeRank);
-  const topHoursEmployees = [...view.employeeStats].slice(0, analysisConfig.displayLimits.employeeRank);
+  const employeesByTotalHours = [...view.employeeStats].sort(
+    (left, right) => right.totalHours - left.totalHours,
+  );
+  const topHoursEmployees = employeesByTotalHours.slice(0, analysisConfig.displayLimits.employeeRank);
   const focusedEmployees = [...view.employeeStats]
     .sort((left, right) => right.focusScore - left.focusScore)
     .slice(0, analysisConfig.displayLimits.employeeRank);
@@ -188,8 +195,14 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
       ariaLabel="员工趋势聚合粒度"
     />
   ) : undefined;
-  const topMonthlyEmployees = [...view.employeeStats].slice(0, analysisConfig.displayLimits.employeeTrendEmployees);
-  const topHeatmapEmployees = [...view.employeeStats].slice(0, analysisConfig.displayLimits.employeeHeatmapEmployees);
+  const topMonthlyEmployees = employeesByTotalHours.slice(
+    0,
+    analysisConfig.displayLimits.employeeTrendEmployees,
+  );
+  const topHeatmapEmployees = employeesByTotalHours.slice(
+    0,
+    analysisConfig.displayLimits.employeeHeatmapEmployees,
+  );
   const topHeatmapProjects = [...view.projectStats]
     .slice(0, analysisConfig.displayLimits.employeeHeatmapProjects)
     .map((item) => item.projectName);
@@ -229,6 +242,22 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
   const topFireEmployees = [...employeeFireStats]
     .sort((left, right) => right.fireScore - left.fireScore)
     .slice(0, analysisConfig.displayLimits.employeeRank);
+  const volatilityModeData = useMemo(() => {
+    const sourceDays =
+      volatilityMode === 'weekday'
+        ? view.employeeDays.filter((day) => isCompanyWorkday(day.date, filters.overtimeMode))
+        : view.employeeDays;
+
+    return buildEmployeeVolatilityData(sourceDays, volatilityMode === 'weekday' ? '平日' : '全量');
+  }, [filters.overtimeMode, view.employeeDays, volatilityMode]);
+  const employeeUpSetData = useMemo(
+    () => buildEmployeeUpSetData(view.employeeStats, view.employeeDays),
+    [view.employeeDays, view.employeeStats],
+  );
+  const selectedUpSetCombo =
+    selectedUpSetComboIndex !== null
+      ? employeeUpSetData.sortedCombinations[selectedUpSetComboIndex] ?? null
+      : null;
 
   const riskScatterOption = {
     tooltip: {
@@ -277,6 +306,315 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
       },
     ],
   };
+
+  const workhourVolatilityOption = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params: Array<{ name?: string; value?: number }>) => {
+        const current = volatilityModeData.topItems.find(
+          (item) => item.employeeName === params[0]?.name,
+        );
+        return [
+          `<strong>${params[0]?.name ?? ''}</strong>`,
+          `口径：${volatilityModeData.modeLabel}`,
+          `工时波动率：${formatNumber((params[0]?.value ?? 0) * 100, 1)}%`,
+          `日均工时：${formatNumber(current?.meanHours ?? 0, 1)} h`,
+          `标准差：${formatNumber(current?.sdHours ?? 0, 1)} h`,
+          `工作天数：${formatNumber(current?.daysWorked ?? 0)}`,
+          `总工时：${formatNumber(current?.totalHours ?? 0, 1)} h`,
+        ].join('<br/>');
+      },
+    },
+    grid: { left: 88, right: 24, top: 24, bottom: 42, containLabel: true },
+    xAxis: {
+      type: 'value',
+      name: '工时波动率（%）',
+      axisLabel: {
+        formatter: (value: number) => `${formatNumber(value * 100, 0)}%`,
+      },
+    },
+    yAxis: {
+      type: 'category',
+      data: volatilityModeData.topItems
+        .slice()
+        .reverse()
+        .map((item) => item.employeeName),
+    },
+    series: [
+      {
+        type: 'bar',
+        data: volatilityModeData.topItems
+          .slice()
+          .reverse()
+          .map((item) => item.coefficientOfVariation),
+        itemStyle: {
+          color: '#0f766e',
+          borderRadius: 10,
+        },
+        label: {
+          show: true,
+          position: 'right',
+          formatter: (params: { value?: number }) =>
+            `${formatNumber((params.value ?? 0) * 100, 0)}%`,
+          color: '#475569',
+        },
+      },
+    ],
+  };
+
+  const employeeUpSetOption = useMemo(() => {
+    const { featureDefs, thresholds, setCounts, sortedCombinations } = employeeUpSetData;
+
+    if (!sortedCombinations.length) {
+      return {
+        grid: [],
+        xAxis: [],
+        yAxis: [],
+        series: [],
+      };
+    }
+
+    const comboLabels = sortedCombinations.map((_, index) => `交集 ${index + 1}`);
+    const featureLabels = featureDefs.map((feature) => feature.label);
+    const featureLabelByKey = new Map(featureDefs.map((feature) => [feature.key, feature.label]));
+
+    const inactiveDots = sortedCombinations.flatMap((_, comboIndex) =>
+      featureLabels.map((label) => ({
+        value: [comboIndex, label],
+        comboIndex,
+      })),
+    );
+    const activeDots = sortedCombinations.flatMap((combo, comboIndex) =>
+      combo.activeKeys.map((key) => {
+        const feature = featureDefs.find((item) => item.key === key)!;
+        return {
+          value: [comboIndex, feature.label],
+          comboIndex,
+          itemStyle: { color: feature.color },
+        };
+      }),
+    );
+    const connectorData = sortedCombinations
+      .map((combo, comboIndex) => {
+        if (combo.activeKeys.length < 2) return null;
+        const labels = combo.activeKeys
+          .map((key) => featureLabelByKey.get(key))
+          .filter(Boolean) as string[];
+        return {
+          comboIndex,
+          coords: labels.map((label) => [comboIndex, label]),
+        };
+      })
+      .filter(Boolean);
+
+    return {
+      tooltip: {
+        trigger: 'item',
+        formatter: (params: {
+          seriesName?: string;
+          data?: {
+            value?: [number, string] | [number, number] | number;
+            comboIndex?: number;
+            featureKey?: string;
+          };
+          value?: number | [number, string] | [number, number];
+        }) => {
+          if (params.seriesName === '交集规模') {
+            const comboIndex = Number(params.data?.comboIndex ?? -1);
+            const combo = sortedCombinations[comboIndex];
+            if (!combo) return '';
+            return [
+              `<strong>${comboLabels[comboIndex]}</strong>`,
+              combo.activeKeys.length
+                ? `特征：${combo.activeKeys
+                    .map((key) => featureLabelByKey.get(key))
+                    .join('、')}`
+                : '特征：四项都未高于团队中位数',
+              `员工数：${combo.count}`,
+              `成员：${
+                combo.members.length <= 6
+                  ? combo.members.map((member) => member.employeeName).join('、')
+                  : `${combo.members
+                      .slice(0, 6)
+                      .map((member) => member.employeeName)
+                      .join('、')} 等 ${combo.members.length} 人`
+              }`,
+              '点击可查看完整名单与指标',
+            ].join('<br/>');
+          }
+
+          if (params.seriesName === '特征规模') {
+            const feature = featureDefs.find((item) => item.key === params.data?.featureKey);
+            if (!feature) return '';
+            const threshold = thresholds[feature.key];
+            return [
+              `<strong>${feature.label}</strong>`,
+              `达到该特征的员工：${setCounts.get(feature.key) ?? 0}`,
+              `${
+                feature.key === 'verifyGapRate'
+                  ? `阈值：>= ${formatNumber(threshold * 100, 1)}%`
+                  : `阈值：>= ${formatNumber(threshold, 2)}${feature.key === 'averageDailyHours' ? ' h' : ''}`
+              }`,
+            ].join('<br/>');
+          }
+
+          const matrixValue = params.data?.value;
+          const comboIndex = Array.isArray(matrixValue) ? Number(matrixValue[0]) : -1;
+          const featureLabel = Array.isArray(matrixValue) ? String(matrixValue[1] ?? '') : '';
+          const combo = sortedCombinations[comboIndex];
+          const matrixFeature = featureDefs.find((feature) => feature.label === featureLabel);
+          if (!combo) return '';
+          return [
+            `<strong>${featureLabel}</strong>`,
+            `交集：${comboLabels[comboIndex]}`,
+            matrixFeature && combo.activeKeys.includes(matrixFeature.key)
+              ? '该交集包含此特征'
+              : '该交集不包含此特征',
+            `员工数：${combo.count}`,
+            `成员：${combo.members.map((member) => member.employeeName).join('、')}`,
+            '点击可查看完整名单与指标',
+          ].join('<br/>');
+        },
+      },
+      grid: [
+        { left: 156, right: 20, top: 24, height: 150 },
+        { left: 156, right: 20, top: 190, height: 120 },
+        { left: 24, width: 108, top: 190, height: 120 },
+      ],
+      xAxis: [
+        {
+          type: 'category',
+          gridIndex: 0,
+          data: comboLabels,
+          axisLabel: { show: false },
+          axisTick: { show: false },
+        },
+        {
+          type: 'category',
+          gridIndex: 1,
+          data: comboLabels,
+          axisLabel: { show: false },
+          axisTick: { show: false },
+          axisLine: { show: false },
+        },
+        {
+          type: 'value',
+          gridIndex: 2,
+          name: '人数',
+          inverse: true,
+          splitLine: { show: false },
+        },
+      ],
+      yAxis: [
+        {
+          type: 'value',
+          gridIndex: 0,
+          name: '交集人数',
+        },
+        {
+          type: 'category',
+          gridIndex: 1,
+          data: featureLabels,
+          inverse: true,
+          axisLabel: { show: false },
+          axisTick: { show: false },
+          axisLine: { show: false },
+        },
+        {
+          type: 'category',
+          gridIndex: 2,
+          data: featureLabels,
+          inverse: true,
+          position: 'right',
+          axisTick: { show: false },
+          axisLine: { show: false },
+          axisLabel: {
+            color: '#334155',
+            fontWeight: 600,
+            margin: 16,
+          },
+        },
+      ],
+      series: [
+        {
+          name: '交集规模',
+          type: 'bar',
+          xAxisIndex: 0,
+          yAxisIndex: 0,
+          data: sortedCombinations.map((combo, comboIndex) => ({
+            value: combo.count,
+            comboIndex,
+            itemStyle: {
+              color: '#8b5cf6',
+              borderRadius: [8, 8, 0, 0],
+            },
+          })),
+          label: {
+            show: true,
+            position: 'top',
+            color: '#475569',
+            formatter: (params: { value?: number }) => `${params.value ?? 0}`,
+          },
+        },
+        {
+          name: '连接线',
+          type: 'lines',
+          coordinateSystem: 'cartesian2d',
+          xAxisIndex: 1,
+          yAxisIndex: 1,
+          silent: true,
+          z: 2,
+          data: connectorData,
+          lineStyle: {
+            color: 'rgba(124, 58, 237, 0.45)',
+            width: 2,
+          },
+        },
+        {
+          name: '未命中特征',
+          type: 'scatter',
+          xAxisIndex: 1,
+          yAxisIndex: 1,
+          z: 1,
+          data: inactiveDots,
+          symbolSize: 10,
+          itemStyle: {
+            color: 'rgba(148, 163, 184, 0.28)',
+          },
+        },
+        {
+          name: '命中特征',
+          type: 'scatter',
+          xAxisIndex: 1,
+          yAxisIndex: 1,
+          z: 3,
+          data: activeDots,
+          symbolSize: 13,
+        },
+        {
+          name: '特征规模',
+          type: 'bar',
+          xAxisIndex: 2,
+          yAxisIndex: 2,
+          data: featureDefs.map((feature) => ({
+            value: setCounts.get(feature.key) ?? 0,
+            featureKey: feature.key,
+            itemStyle: {
+              color: feature.color,
+              borderRadius: [8, 0, 0, 8],
+            },
+          })),
+          label: {
+            show: true,
+            position: 'left',
+            color: '#475569',
+            formatter: (params: { value?: number }) => `${params.value ?? 0}`,
+          },
+        },
+      ],
+    };
+  }, [employeeUpSetData]);
 
   const focusBarOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -952,6 +1290,36 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
       />
 
       <ChartPanel
+        title="员工工时波动率排名"
+        className="rlab-inline-header-panel"
+        subtitle={`当前按${volatilityModeData.modeLabel}口径看谁的工时节奏最不稳定`}
+        note="这里用单个员工的日工时均值与标准差计算工时波动率。全量会把周末、法定节假日和调休工作日一起算进去；平日口径会按项目里的公司工作日规则过滤，更适合看常规工作节奏。"
+        option={workhourVolatilityOption}
+        source="derived"
+        method="前端计算：按员工聚合单日工时序列，计算标准差与变异系数"
+        reliability="中高"
+        caution={`当前“平日”会复用项目的公司工作日规则：法定节假日会排除，调休工作日会保留${filters.overtimeMode === 'bigSmallWeek' ? '，大小周上班周六也会保留' : ''}`}
+        actions={
+          <div className="mini-segment" aria-label="工时波动率口径切换">
+            <button
+              type="button"
+              className={`mini-segment-button ${volatilityMode === 'weekday' ? 'active' : ''}`.trim()}
+              onClick={() => setVolatilityMode('weekday')}
+            >
+              平日
+            </button>
+            <button
+              type="button"
+              className={`mini-segment-button ${volatilityMode === 'all' ? 'active' : ''}`.trim()}
+              onClick={() => setVolatilityMode('all')}
+            >
+              全量
+            </button>
+          </div>
+        }
+      />
+
+      <ChartPanel
         title="高风险员工的工作结构"
         subtitle="风险更高的人，时间到底花在什么类型的工作上"
         note="这张图直接回答：风险来自开发主任务、维护返工，还是现场支持和沟通打断。"
@@ -1054,6 +1422,120 @@ export function EmployeesPage({ view, filters, onOpenDetail }: EmployeesPageProp
         reliability="高"
         caution="当前仅展示头部员工和头部项目，长尾项目被省略"
       />
+
+      <ChartPanel
+        title="员工特征交集 UpSet 图"
+        subtitle="看哪些员工同时具备高工时、高任务、高项目数和高核验缺口等特征"
+        note="这张图把员工画像改成更直接的“特征交集”视角。上面的柱子看常见特征组合有多少人，下面的点阵看组合由哪些特征构成，左侧则看单个特征本身覆盖了多少员工。"
+        option={employeeUpSetOption}
+        height={460}
+        className="panel-wide"
+        source="derived"
+        method="前端计算：基于团队中位数将 4 个直接特征二值化，再统计精确交集"
+        reliability="中"
+        caution="这里的“高”表示高于当前样本团队中位数，不代表绝对高负载；更适合看特征重叠结构，不适合做绩效判断"
+        onChartClick={(params) => {
+          const data = params.data as { comboIndex?: number } | undefined;
+          const value = params.value;
+          const comboIndex =
+            typeof data?.comboIndex === 'number'
+              ? data.comboIndex
+              : Array.isArray(value)
+                ? Number(value[0])
+                : Number.NaN;
+          if (Number.isFinite(comboIndex) && comboIndex >= 0) {
+            setSelectedUpSetComboIndex(comboIndex);
+          }
+        }}
+      />
+
+      {selectedUpSetCombo ? (
+        <div className="detail-overlay" onClick={() => setSelectedUpSetComboIndex(null)}>
+          <div
+            className="detail-drawer rlab-upset-drawer"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="detail-header">
+              <div>
+                <div className="focus-intro-label">员工特征交集</div>
+                <h2 className="focus-intro-title">
+                  {selectedUpSetCombo.activeKeys.length
+                    ? selectedUpSetCombo.activeKeys
+                        .map(
+                          (key) =>
+                            employeeUpSetData.featureDefs.find((feature) => feature.key === key)
+                              ?.label ?? key,
+                        )
+                        .join(' + ')
+                    : '四项都未高于团队中位数'}
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="panel-info-toggle"
+                onClick={() => setSelectedUpSetComboIndex(null)}
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className="chart-meta">
+              <MetaPill tone="derived">{`员工数 ${selectedUpSetCombo.count}`}</MetaPill>
+              <span>口径：基于团队中位数判断是否进入高工时、高任务、高项目数和高核验缺口特征</span>
+            </div>
+
+            <div className="detail-content">
+              <div className="rlab-upset-feature-pills">
+                {employeeUpSetData.featureDefs.map((feature) => {
+                  const active = selectedUpSetCombo.activeKeys.includes(feature.key);
+                  const threshold = employeeUpSetData.thresholds[feature.key];
+                  return (
+                    <span
+                      key={feature.key}
+                      className={`rlab-upset-feature-pill ${active ? 'active' : ''}`.trim()}
+                      style={{
+                        background: active
+                          ? `color-mix(in srgb, ${feature.color} 18%, var(--surface-elevated))`
+                          : `color-mix(in srgb, ${feature.color} 9%, var(--surface-raised))`,
+                        boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${feature.color} ${active ? '36%' : '18%'}, transparent)`,
+                      }}
+                    >
+                      <strong>{feature.label}</strong>
+                      <span>
+                        {feature.key === 'verifyGapRate'
+                          ? `阈值 >= ${formatNumber(threshold * 100, 1)}%`
+                          : `阈值 >= ${formatNumber(threshold, 2)}${feature.key === 'averageDailyHours' ? 'h' : ''}`}
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+
+              <div className="rlab-upset-member-table">
+                <div className="rlab-upset-member-head">
+                  <span>员工</span>
+                  <span>日均工时</span>
+                  <span>日均任务数</span>
+                  <span>日均项目数</span>
+                  <span>核验缺口率</span>
+                </div>
+                {selectedUpSetCombo.members
+                  .slice()
+                  .sort((left, right) => right.averageDailyHours - left.averageDailyHours)
+                  .map((member) => (
+                    <div className="rlab-upset-member-row" key={member.employeeId}>
+                      <strong>{member.employeeName}</strong>
+                      <span>{formatNumber(member.averageDailyHours, 2)} h</span>
+                      <span>{formatNumber(member.taskPerDay, 2)}</span>
+                      <span>{formatNumber(member.averageProjectCount, 2)}</span>
+                      <span>{formatNumber(member.verifyGapRate * 100, 1)}%</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

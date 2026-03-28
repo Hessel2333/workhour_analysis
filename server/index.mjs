@@ -54,9 +54,11 @@ const server = createServer(async (req, res) => {
 
     sendJson(res, 404, { ok: false, error: 'Not Found' });
   } catch (error) {
-    sendJson(res, getErrorStatus(error), {
+    const status = getErrorStatus(error);
+    const message = getErrorMessage(error);
+    sendJson(res, status, {
       ok: false,
-      error: getErrorMessage(error),
+      error: message,
     });
   }
 });
