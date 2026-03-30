@@ -621,6 +621,7 @@ function buildAgentReport(
 
   const llmPrompt = [
     '你是软件研发效能分析助手，请根据以下结构化信息输出异常报告和优化建议。',
+    '不要写客套话，不要重复题目，不要输出前言。',
     `样本范围：${filters.startDate} 到 ${filters.endDate}。`,
     `全局指标：总工时 ${formatNumber(globalMetrics.totalHours)}，活跃员工 ${globalMetrics.activeEmployees}，异常负载日占比 ${formatPercent(globalMetrics.anomalyDayRate)}。`,
     `主要异常：${issues
@@ -635,7 +636,21 @@ function buildAgentReport(
       .slice(0, analysisConfig.displayLimits.llmTaskPreview)
       .map((task) => `${task.projectName}/${task.topicLabel}/${task.reportHour}h`)
       .join('；')}`,
-    '请输出：1. 异常综述 2. 员工侧风险 3. 项目侧风险 4. 下周优化建议 5. 需要补采的数据。',
+    '请严格使用 Markdown 输出，结构固定如下：',
+    '## 一句话判断',
+    '- 用 2 到 3 句话概括当前最重要的管理判断。',
+    '## 样本快照',
+    '- 用 3 到 5 个要点概括时间范围、总工时、异常负载、数据健康。',
+    '## 优先关注对象',
+    '- 列出 3 个以内最值得先看的对象，每项一条。',
+    '## 员工侧风险',
+    '- 只写真正需要管理动作的员工侧问题。',
+    '## 项目侧风险',
+    '- 只写真正需要管理动作的项目侧问题。',
+    '## 下周动作建议',
+    '1. 给出 3 条以内能直接执行的动作，按优先级排序。',
+    '## 需要补采或补核的数据',
+    '- 列出会显著影响判断质量的数据缺口。',
   ].join('\n');
 
   const summary =
